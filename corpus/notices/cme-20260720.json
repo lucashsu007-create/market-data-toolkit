@@ -1,0 +1,12 @@
+{
+  "id": "cme-20260720",
+  "venue": "cme",
+  "source_url": "https://www.cmegroup.com/notices/electronic-trading/2026/07/20260720.html",
+  "published": "2026-07-20",
+  "notice_no": "GLOBEX-20260720",
+  "title": "CME Globex Notice: Livestock markets move to dedicated Market Segments and MDP channels",
+  "summary": "To prepare the Livestock migration to Google Cloud (Q4 2026 Production-Dallas), CME launches dedicated Market Segments and MDP channels on-premise; Livestock trades on the new segments and channels from 2026-08-16. Clients must connect to new multicast channels and new MSGW/Drop Copy instances. New Release testing from 2026-07-21.",
+  "quote": "",
+  "effective": "2026-08-16",
+  "depth": "shallow"
+}

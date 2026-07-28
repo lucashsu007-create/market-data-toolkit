@@ -1,0 +1,12 @@
+{
+  "id": "nasdaq-dtn2026-15",
+  "venue": "nasdaq",
+  "source_url": "http://www.nasdaqtrader.com/TraderNews.aspx?id=DTN2026-15",
+  "published": "2026-07-24",
+  "notice_no": "DTN2026-15",
+  "title": "Nasdaq Announces Changes to NFN Daily List, NFN Symbol Directory and Product Directory",
+  "summary": "Nasdaq Fund Network adds three fields to the Daily List and Symbol Directory (pricing frequency, minimum initial/incremental subscription currency), European fund categories to Investor Type, AUM to the Product Directory and an LEI field for issuer managers. NFN issuers and data users must prepare; testing opens 2026-10-03.",
+  "quote": "",
+  "effective": "2026-10-05",
+  "depth": "full"
+}

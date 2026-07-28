@@ -1,0 +1,12 @@
+{
+  "id": "nasdaq-dtn2026-12",
+  "venue": "nasdaq",
+  "source_url": "http://www.nasdaqtrader.com/TraderNews.aspx?id=DTN2026-12",
+  "published": "2026-07-14",
+  "notice_no": "DTN2026-12",
+  "title": "CAE, Inc. to Begin Listing and Trading on Nasdaq on July 23, 2026",
+  "summary": "CAE transfers from NYSE to Nasdaq Global Select keeping ticker CAE; market data moves from NYSE consolidated feed to UTP quotation and trade feeds; redistributors must update databases.",
+  "quote": "",
+  "effective": "2026-07-23",
+  "depth": "full"
+}

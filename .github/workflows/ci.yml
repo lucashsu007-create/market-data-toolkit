@@ -17,11 +17,8 @@ jobs:
       - name: Tests
         run: pytest --cov=mdt --cov-report=term-missing
 
-      # The extraction script must stay in sync with the demo payload: if
-      # index.html changes, data/estate.json has to be regenerated or the
-      # parity tests are asserting against stale input.
-      - name: Extracted data is up to date
-        run: |
-          python scripts/extract_estate.py
-          git diff --exit-code data/ tests/fixtures/ \
-            || { echo "::error::run scripts/extract_estate.py and commit the result"; exit 1; }
+      # data/estate.json is now authored (source of truth flipped when the
+      # utp_sip feed was added for the real notice corpus): the demo payload
+      # will be *generated from it* by scripts/build_payload.py, not the other
+      # way round. extract_estate.py remains as the historical bootstrap.
+      # A payload-drift check returns here once build_payload.py exists.

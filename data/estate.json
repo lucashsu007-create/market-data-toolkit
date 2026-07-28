@@ -1,6 +1,6 @@
 {
   "meta": {
-    "source": "index.html embedded payload",
+    "source": "authored; originally extracted from index.html embedded payload",
     "version": "0.5.0-site",
     "synthetic": true
   },
@@ -326,6 +326,20 @@
       "name": "corporate_actions_entitlement",
       "criticality": "",
       "owner": ""
+    },
+    {
+      "id": "utp_sip",
+      "type": "feed",
+      "name": "UTP SIP (UQDF/UTDF)",
+      "criticality": "high",
+      "owner": "market-data-eng"
+    },
+    {
+      "id": "consolidated_tape",
+      "type": "dataset",
+      "name": "US consolidated tape",
+      "criticality": "",
+      "owner": "market-data-eng"
     }
   ],
   "links": [
@@ -741,6 +755,36 @@
       "source": "lse_pricer",
       "target": "equity_trading",
       "edge_type": "supports",
+      "kind": "flow"
+    },
+    {
+      "source": "utp_sip",
+      "target": "nasdaq",
+      "edge_type": "published_by",
+      "kind": "governance"
+    },
+    {
+      "source": "utp_sip",
+      "target": "market-data-eng",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "utp_sip",
+      "target": "consolidated_tape",
+      "edge_type": "provides",
+      "kind": "flow"
+    },
+    {
+      "source": "consolidated_tape",
+      "target": "market_data_validator",
+      "edge_type": "consumed_by",
+      "kind": "flow"
+    },
+    {
+      "source": "consolidated_tape",
+      "target": "equities_pricer",
+      "edge_type": "consumed_by",
       "kind": "flow"
     }
   ]

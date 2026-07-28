@@ -1,0 +1,12 @@
+{
+  "id": "cme-20260615",
+  "venue": "cme",
+  "source_url": "https://www.cmegroup.com/notices/electronic-trading/2026/06/20260615.html",
+  "published": "2026-06-15",
+  "notice_no": "GLOBEX-20260615",
+  "title": "CME Globex Notice: MDP 3.0 Security Definition field population",
+  "summary": "From 2026-06-25 CME populates existing fields in MDP 3.0 Security Definition messages, affecting tag 1682-MDSecurityTradingStatus and tag 37513-InstrumentGUID across listed derivatives, BrokerTec and EBS markets; consumers should verify parsing.",
+  "quote": "",
+  "effective": "2026-06-25",
+  "depth": "shallow"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "nasdaq-utp2026-15",
+  "venue": "nasdaq",
+  "source_url": "http://www.nasdaqtrader.com/TraderNews.aspx?id=UTP2026-15",
+  "published": "2026-06-05",
+  "notice_no": "UTP2026-15",
+  "title": "New Enhanced Symbol Directory Message",
+  "summary": "First announcement of the Enhanced Symbol Directory Message (Category A Type F) with new fields (New Issue Indicator, ETP Indicator, MPI Tick, Trading State, Halt Reason, Reg SHO Action) ahead of the 2026-11-02 MPI compliance date; testing from September 2026.",
+  "quote": "",
+  "effective": "2026-11-02",
+  "depth": "full"
+}

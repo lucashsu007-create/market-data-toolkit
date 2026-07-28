@@ -1,0 +1,12 @@
+{
+  "id": "cme-20260330",
+  "venue": "cme",
+  "source_url": "https://www.cmegroup.com/notices/electronic-trading/2026/03/20260330.html",
+  "published": "2026-03-30",
+  "notice_no": "GLOBEX-20260330",
+  "title": "CME Globex Notice: 1Gbps connections to lose MDP 3.0 multicast market data",
+  "summary": "Effective 2026-06-27, 1Gbps services no longer carry MDP 3.0 multicast market data; affected customers must upgrade to 10Gbps. Unicast services (iLink, Drop Copy, STP, MQ) stay on 1Gbps. Re-announced in successive weekly notices.",
+  "quote": "",
+  "effective": "2026-06-27",
+  "depth": "shallow"
+}

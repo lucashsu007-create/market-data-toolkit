@@ -131,9 +131,12 @@ def test_loader_rejects_duplicate_ids(tmp_path):
 # -- the shipped estate ---------------------------------------------------
 
 def test_shipped_estate_loads_with_expected_shape():
+    # 46 nodes / 69 edges extracted from the demo, plus the utp_sip feed and
+    # consolidated_tape dataset added for the real Nasdaq notice corpus (the
+    # SIP consolidated tape is not the TotalView depth feed).
     estate = load_estate()
-    assert len(estate) == 46
-    assert len(estate.edges) == 69
+    assert len(estate) == 48
+    assert len(estate.edges) == 74
 
 
 def test_shipped_estate_edge_types_are_all_classified():

@@ -1,0 +1,12 @@
+{
+  "id": "nasdaq-utp2026-20",
+  "venue": "nasdaq",
+  "source_url": "http://www.nasdaqtrader.com/TraderNews.aspx?id=UTP2026-20",
+  "published": "2026-07-06",
+  "notice_no": "UTP2026-20",
+  "title": "UTP SIP Extended Trading Hours",
+  "summary": "UTP SIP moves to a 23x5 operating schedule (Sunday 21:00 ET through Friday 20:00 ET with nightly maintenance windows). Testing uses production multicast IPs; recipients must guard against database corruption during tests.",
+  "quote": "",
+  "effective": "2026-12-06",
+  "depth": "full"
+}

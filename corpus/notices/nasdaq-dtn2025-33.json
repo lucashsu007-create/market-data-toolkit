@@ -1,0 +1,12 @@
+{
+  "id": "nasdaq-dtn2025-33",
+  "venue": "nasdaq",
+  "source_url": "http://www.nasdaqtrader.com/TraderNews.aspx?id=DTN2025-33",
+  "published": "2025-11-13",
+  "notice_no": "DTN2025-33",
+  "title": "POSTPONED: Nasdaq Announces the Launch of the NFN 0060 Data Format",
+  "summary": "The NFN 0060 format launch (six- to nine-character decimal expansion, new ETF Summary format, new NFNDS message codes, 15-minute FTP pickup intervals) is postponed from 2026-08-10 to a date to be announced. NFN issuers, pricing agents and NFNDS subscribers affected.",
+  "quote": "",
+  "effective": null,
+  "depth": "full"
+}

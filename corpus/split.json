@@ -1,0 +1,35 @@
+{
+  "seed": 20260728,
+  "method": "stratified by label type, ~27% held out, singleton classes stay in dev",
+  "frozen": "2026-07-28, before router.py existed",
+  "dev": [
+    "cme-20260330",
+    "cme-20260608",
+    "cme-20260615",
+    "cme-20260720",
+    "nasdaq-dtn2025-31",
+    "nasdaq-dtn2025-32",
+    "nasdaq-dtn2025-33",
+    "nasdaq-dtn2026-10",
+    "nasdaq-dtn2026-11",
+    "nasdaq-dtn2026-13",
+    "nasdaq-dtn2026-14",
+    "nasdaq-dtn2026-15",
+    "nasdaq-utp2025-16",
+    "nasdaq-utp2025-19",
+    "nasdaq-utp2026-16",
+    "nasdaq-utp2026-17",
+    "nasdaq-utp2026-19",
+    "nasdaq-utp2026-20",
+    "nasdaq-utp2026-21"
+  ],
+  "held_out": [
+    "cme-20260316",
+    "nasdaq-dtn2026-12",
+    "nasdaq-utp2026-14",
+    "nasdaq-utp2026-15",
+    "nasdaq-utp2026-18",
+    "nasdaq-utp2026-22",
+    "nasdaq-utp2026-23"
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "id": "cme-20260608",
+  "venue": "cme",
+  "source_url": "https://www.cmegroup.com/notices/electronic-trading/2026/06/20260608.html",
+  "published": "2026-06-08",
+  "notice_no": "GLOBEX-20260608",
+  "title": "CME Globex Notice: MDP 3.0 recovery feed packet threshold increase",
+  "summary": "CME increases the production packets-per-second threshold for MDP 3.0 recovery feeds effective 2026-06-14 (trade date 2026-06-15); consumers should confirm capacity headroom.",
+  "quote": "",
+  "effective": "2026-06-14",
+  "depth": "shallow"
+}

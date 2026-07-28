@@ -1,0 +1,12 @@
+{
+  "id": "cme-20260316",
+  "venue": "cme",
+  "source_url": "https://www.cmegroup.com/notices/electronic-trading/2026/03/20260316.html",
+  "published": "2026-03-16",
+  "notice_no": "GLOBEX-20260316",
+  "title": "CME Globex Notice: new MDP multicast groups (Channel 335 and 350)",
+  "summary": "New market data multicast group Channel ID 335 for Equity Index and Alternative Products expansion in 1H2026, and Channel ID 350 for a new interest-rate options product suite in Q2 2026; data consumers must provision the new channels.",
+  "quote": "",
+  "effective": null,
+  "depth": "shallow"
+}

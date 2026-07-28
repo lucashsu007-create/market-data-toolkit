@@ -1,0 +1,12 @@
+{
+  "id": "nasdaq-dtn2026-10",
+  "venue": "nasdaq",
+  "source_url": "http://www.nasdaqtrader.com/TraderNews.aspx?id=DTN2026-10",
+  "published": "2026-06-22",
+  "notice_no": "DTN2026-10",
+  "title": "Nasdaq Introduces Updates to Market Data Feeds to Include Additional Listing Market",
+  "summary": "All US Nasdaq data feeds (Basic, TotalView, TotalView Plus, GLIMPSE, Level 2, NOIS, NOIView and more) add listing-market value 'F' for Texas Stock Exchange in primary-listing-market messages.",
+  "quote": "",
+  "effective": "2026-07-06",
+  "depth": "full"
+}

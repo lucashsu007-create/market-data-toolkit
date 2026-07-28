@@ -1,0 +1,216 @@
+{
+  "cme-20260316": {
+    "escalate": false,
+    "feeds": [
+      "cme_mdp3_futures"
+    ],
+    "priority": "medium",
+    "type": "feed_change"
+  },
+  "cme-20260330": {
+    "escalate": true,
+    "feeds": [
+      "cme_mdp3_futures"
+    ],
+    "note": "connectivity loses market data without upgrade",
+    "priority": "high",
+    "type": "feed_change"
+  },
+  "cme-20260608": {
+    "escalate": false,
+    "feeds": [
+      "cme_mdp3_futures"
+    ],
+    "priority": "medium",
+    "type": "operational"
+  },
+  "cme-20260615": {
+    "escalate": false,
+    "feeds": [
+      "cme_mdp3_futures"
+    ],
+    "priority": "medium",
+    "type": "format_change"
+  },
+  "cme-20260720": {
+    "escalate": true,
+    "feeds": [
+      "cme_mdp3_futures"
+    ],
+    "note": "must connect to new multicast channels by effective date",
+    "priority": "high",
+    "type": "feed_change"
+  },
+  "nasdaq-dtn2025-31": {
+    "escalate": false,
+    "feeds": [
+      "utp_sip"
+    ],
+    "priority": "low",
+    "type": "reference_data"
+  },
+  "nasdaq-dtn2025-32": {
+    "escalate": false,
+    "feeds": [
+      "utp_sip"
+    ],
+    "priority": "low",
+    "type": "reference_data"
+  },
+  "nasdaq-dtn2025-33": {
+    "escalate": true,
+    "feeds": [
+      "unknown"
+    ],
+    "note": "NFN not modelled; postponement still needs tracking",
+    "priority": "medium",
+    "type": "format_change"
+  },
+  "nasdaq-dtn2026-10": {
+    "escalate": false,
+    "feeds": [
+      "nasdaq_totalview"
+    ],
+    "priority": "medium",
+    "type": "format_change"
+  },
+  "nasdaq-dtn2026-11": {
+    "escalate": false,
+    "feeds": [
+      "utp_sip"
+    ],
+    "priority": "low",
+    "type": "reference_data"
+  },
+  "nasdaq-dtn2026-12": {
+    "escalate": false,
+    "feeds": [
+      "utp_sip"
+    ],
+    "priority": "low",
+    "type": "reference_data"
+  },
+  "nasdaq-dtn2026-13": {
+    "escalate": false,
+    "feeds": [
+      "utp_sip"
+    ],
+    "priority": "low",
+    "type": "reference_data"
+  },
+  "nasdaq-dtn2026-14": {
+    "escalate": true,
+    "feeds": [
+      "nasdaq_totalview"
+    ],
+    "note": "product retirement with migration deadline",
+    "priority": "high",
+    "type": "feed_change"
+  },
+  "nasdaq-dtn2026-15": {
+    "escalate": true,
+    "feeds": [
+      "unknown"
+    ],
+    "note": "NFN not modelled in estate",
+    "priority": "medium",
+    "type": "format_change"
+  },
+  "nasdaq-utp2025-16": {
+    "escalate": false,
+    "feeds": [],
+    "note": "governance item, no feed impact",
+    "priority": "low",
+    "type": "admin_other"
+  },
+  "nasdaq-utp2025-19": {
+    "escalate": false,
+    "feeds": [
+      "utp_sip"
+    ],
+    "priority": "low",
+    "type": "regulatory"
+  },
+  "nasdaq-utp2026-14": {
+    "escalate": false,
+    "feeds": [
+      "utp_sip"
+    ],
+    "priority": "low",
+    "type": "operational"
+  },
+  "nasdaq-utp2026-15": {
+    "escalate": true,
+    "feeds": [
+      "utp_sip"
+    ],
+    "priority": "high",
+    "type": "format_change"
+  },
+  "nasdaq-utp2026-16": {
+    "escalate": false,
+    "feeds": [
+      "utp_sip"
+    ],
+    "priority": "low",
+    "type": "operational"
+  },
+  "nasdaq-utp2026-17": {
+    "escalate": false,
+    "feeds": [
+      "utp_sip"
+    ],
+    "priority": "low",
+    "type": "operational"
+  },
+  "nasdaq-utp2026-18": {
+    "escalate": false,
+    "feeds": [
+      "utp_sip"
+    ],
+    "priority": "low",
+    "type": "regulatory"
+  },
+  "nasdaq-utp2026-19": {
+    "escalate": false,
+    "feeds": [
+      "utp_sip"
+    ],
+    "priority": "medium",
+    "type": "operational"
+  },
+  "nasdaq-utp2026-20": {
+    "escalate": true,
+    "feeds": [
+      "utp_sip"
+    ],
+    "note": "operating schedule change; downstream jobs assume market hours",
+    "priority": "high",
+    "type": "operational"
+  },
+  "nasdaq-utp2026-21": {
+    "escalate": false,
+    "feeds": [
+      "utp_sip"
+    ],
+    "priority": "low",
+    "type": "regulatory"
+  },
+  "nasdaq-utp2026-22": {
+    "escalate": false,
+    "feeds": [
+      "utp_sip"
+    ],
+    "priority": "low",
+    "type": "operational"
+  },
+  "nasdaq-utp2026-23": {
+    "escalate": true,
+    "feeds": [
+      "utp_sip"
+    ],
+    "note": "parser must support new message type",
+    "priority": "high",
+    "type": "format_change"
+  }
+}

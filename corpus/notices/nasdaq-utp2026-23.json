@@ -1,0 +1,12 @@
+{
+  "id": "nasdaq-utp2026-23",
+  "venue": "nasdaq",
+  "source_url": "http://www.nasdaqtrader.com/TraderNews.aspx?id=UTP2026-23",
+  "published": "2026-07-14",
+  "notice_no": "UTP2026-23",
+  "title": "UPDATE: New Enhanced Symbol Directory Message",
+  "summary": "UTP SIP introduces the Enhanced Symbol Directory Message (Category A Type F) alongside the existing Type B message; firms must support both until the legacy message retires in Q1 2027. Nightly test transmissions from 2026-07-13; Saturday UATs Sep-Oct.",
+  "quote": "firms should be prepared to support both messages",
+  "effective": "2026-10-05",
+  "depth": "full"
+}

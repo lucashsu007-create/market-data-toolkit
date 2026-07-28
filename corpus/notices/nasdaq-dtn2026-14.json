@@ -1,0 +1,12 @@
+{
+  "id": "nasdaq-dtn2026-14",
+  "venue": "nasdaq",
+  "source_url": "http://www.nasdaqtrader.com/TraderNews.aspx?id=DTN2026-14",
+  "published": "2026-07-20",
+  "notice_no": "DTN2026-14",
+  "title": "Nasdaq Announces Retirement of Two Depth Solution Products",
+  "summary": "Nasdaq retires Nasdaq Level 2 and TotalView Aggregated as part of the 23/5 expansion. Customers must migrate to TotalView 5.0 or TotalView Plus 1.0 before the retirement date; parallel period until then, no additional licensing cost.",
+  "quote": "Following this date, access to both products will be discontinued for all customers.",
+  "effective": "2026-11-20",
+  "depth": "full"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "nasdaq-utp2026-22",
+  "venue": "nasdaq",
+  "source_url": "http://www.nasdaqtrader.com/TraderNews.aspx?id=UTP2026-22",
+  "published": "2026-07-09",
+  "notice_no": "UTP2026-22",
+  "title": "Bandwidth Recommendations for the UTP SIP Services",
+  "summary": "Annual capacity testing reconfirms the 2.4 Gbps bandwidth recommendation for all four UTP SIP streams (New York A/B, Chicago A/B); peak observed usage is far lower but the recommendation covers maximum burst.",
+  "quote": "",
+  "effective": null,
+  "depth": "full"
+}

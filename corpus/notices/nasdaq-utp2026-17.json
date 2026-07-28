@@ -1,0 +1,12 @@
+{
+  "id": "nasdaq-utp2026-17",
+  "venue": "nasdaq",
+  "source_url": "http://www.nasdaqtrader.com/TraderNews.aspx?id=UTP2026-17",
+  "published": "2026-06-16",
+  "notice_no": "UTP2026-17",
+  "title": "U.S. Market Holiday: Independence Day",
+  "summary": "Markets closed 2026-07-03 for Independence Day; test data may be disseminated on the holiday via dedicated test broadcast IPs.",
+  "quote": "",
+  "effective": "2026-07-03",
+  "depth": "full"
+}
