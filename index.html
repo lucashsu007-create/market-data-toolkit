@@ -1,0 +1,718 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Market-data operations toolkit — Lucas Hsu</title>
+<meta name="description" content="An interactive D3 walkthrough of a market-data operations toolkit: feed health, order-book layers, and latency budgets." />
+<script src="d3.min.js"></script>
+<style>/* ============================================================
+   Market-data impact graph — cluster styles (dark, TradingView-ish)
+   Scoped under .mdig so it can live as a section of a personal site.
+   ============================================================ */
+.mdig {
+  --bg: #0c0e15; --panel: #131722; --panel-2: #161b27; --line: #2a2e39;
+  --ink: #d1d4dc; --muted: #868a96; --flow: #5b6472; --gov: #444b59;
+  --up: #26a69a; --down: #ef5350; --blue: #2962ff;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  background: var(--bg); color: var(--ink);
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Trebuchet MS", "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  height: 100vh; display: flex; flex-direction: column;
+  padding: 16px 18px 12px; max-width: 1320px; margin: 0 auto;
+}
+.mdig *, .mdig *::before, .mdig *::after { box-sizing: border-box; }
+
+/* ---- header ---- */
+.mdig-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; flex: none; }
+.mdig-head h1 { margin: 0 0 2px; font-size: 21px; letter-spacing: -0.01em; color: #f0f3fa; }
+.mdig-head p { margin: 0; color: var(--muted); max-width: 700px; font-size: 13px; }
+.mdig-byline { font-size: 13px; color: var(--muted); white-space: nowrap; padding-top: 3px; }
+.mdig-byline strong { color: var(--ink); font-weight: 600; }
+.mdig-syn { display: inline-block; margin-top: 6px; font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; }
+
+/* ---- nav tabs ---- */
+.mdig-nav { display: flex; gap: 4px; flex: none; margin: 14px 0 12px; flex-wrap: wrap; }
+.mdig-nav button { border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all .12s ease; }
+.mdig-nav button:hover { border-color: #3d434f; background: #1b2130; }
+.mdig-nav button.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+.mdig-nav button:disabled { opacity: .45; cursor: default; }
+.mdig-nav button .soon { font-size: 9.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-left: 5px; }
+
+/* ---- view container ---- */
+.mdig-view { flex: 1 1 auto; min-height: 0; }
+.mdig-foot { margin-top: 8px; flex: none; color: var(--muted); font-size: 11px; }
+
+/* ---- shared components ---- */
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+.section-label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 8px; }
+.badge { font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 6px; font-family: var(--mono); display: inline-block; }
+.badge.review { background: rgba(239,83,80,.16); color: #ff6b66; border: 1px solid rgba(239,83,80,.35); }
+.badge.clear { background: rgba(38,166,154,.16); color: #4cd2c4; border: 1px solid rgba(38,166,154,.35); }
+.badge.prio-high { background: rgba(239,83,80,.16); color: #ff6b66; }
+.badge.prio-medium { background: rgba(255,159,10,.16); color: #ffb84d; }
+.badge.prio-low { background: rgba(38,166,154,.16); color: #4cd2c4; }
+.badge.conf { background: rgba(41,98,255,.18); color: #6f93ff; }
+.badge.nomatch { background: rgba(120,123,134,.18); color: #aab0bb; }
+.counts { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.count { background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; font-size: 12px; color: var(--muted); }
+.count b { font-size: 17px; display: block; color: var(--ink); font-family: var(--mono); }
+.risk { font-size: 12.5px; padding: 6px 9px; border-radius: 7px; background: rgba(255,159,10,.08); border: 1px solid rgba(255,159,10,.25); color: #ffc06b; margin-bottom: 5px; }
+.risk.none { background: rgba(38,166,154,.08); border-color: rgba(38,166,154,.25); color: #6fdccf; }
+.btn { border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); padding: 9px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; transition: all .12s ease; }
+.btn:hover { border-color: #3d434f; background: #1b2130; }
+.btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+.btn.primary:hover { background: #1e54e6; }
+
+/* ---- overview ---- */
+.ov-grid { display: grid; gap: 14px; height: 100%; grid-template-rows: auto auto 1fr; min-height: 0; overflow-y: auto; }
+.ov-hero h2 { margin: 2px 0 6px; font-size: 22px; color: #f0f3fa; }
+.ov-hero p { margin: 0; color: #aab0bb; font-size: 14px; max-width: 760px; }
+.ov-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.ov-stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.ov-stat b { display: block; font-size: 22px; font-family: var(--mono); color: #f0f3fa; }
+.ov-stat span { font-size: 12px; color: var(--muted); }
+.ov-stat.good b { color: #4cd2c4; }
+.layers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.layer { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; }
+.layer .lnum { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.layer h3 { margin: 4px 0 2px; font-size: 15px; color: #f0f3fa; }
+.layer .q { color: var(--muted); font-size: 12.5px; font-style: italic; margin-bottom: 8px; }
+.layer p { margin: 0 0 10px; font-size: 12.5px; color: #aab0bb; }
+.layer .metric { margin-top: auto; font-size: 12px; font-family: var(--mono); color: #4cd2c4; background: rgba(38,166,154,.1); border: 1px solid rgba(38,166,154,.25); border-radius: 7px; padding: 6px 8px; }
+.layer.l2 { border-color: rgba(41,98,255,.4); }
+.ov-cta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+/* ---- placeholder (stub views) ---- */
+.stub { height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; color: var(--muted); }
+.stub h2 { color: var(--ink); margin: 0 0 6px; }
+.stub p { max-width: 420px; }
+
+/* ============================================================
+   Graph module (mounted by graph.js); classes prefixed g-
+   ============================================================ */
+.g-wrap { display: grid; grid-template-columns: 250px 1fr; gap: 14px; height: 100%; min-height: 0; }
+.g-wrap.focused { grid-template-columns: 1fr; }
+.g-side { display: flex; flex-direction: column; gap: 12px; min-height: 0; overflow-y: auto; padding-right: 3px; }
+.g-sec { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.g-scnlist { display: flex; flex-direction: column; gap: 4px; }
+.g-scn { text-align: left; border: 1px solid transparent; background: var(--panel-2); color: var(--ink); padding: 8px 10px; border-radius: 7px; cursor: pointer; font-size: 13px; transition: background .12s ease; }
+.g-scn:hover { background: #1b2130; }
+.g-scn.active { background: var(--blue); color: #fff; }
+.g-scn .m { display: block; font-size: 10.5px; color: var(--muted); margin-top: 1px; }
+.g-scn.active .m { color: rgba(255,255,255,.75); }
+.g-views { display: flex; gap: 3px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 3px; }
+.g-views button { flex: 1; border: 0; background: transparent; color: var(--muted); padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+.g-views button.active { background: #2a3040; color: #fff; }
+.g-quick { display: flex; gap: 5px; margin-bottom: 9px; }
+.g-quick button { flex: 1; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); padding: 5px 6px; border-radius: 6px; cursor: pointer; font-size: 11.5px; }
+.g-quick button:hover { color: var(--ink); border-color: #3d434f; }
+.g-types { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 8px; }
+.g-type { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink); cursor: pointer; user-select: none; }
+.g-type input { accent-color: var(--blue); width: 13px; height: 13px; margin: 0; cursor: pointer; }
+.g-type .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.g-type.off { color: var(--muted); }
+.g-type.off .dot { opacity: .3; }
+.g-elegend { margin-top: 10px; font-size: 11px; color: var(--muted); display: flex; gap: 14px; }
+.g-elegend .e { display: inline-flex; align-items: center; gap: 5px; }
+.g-elegend .ln { width: 18px; border-top: 2px solid var(--flow); }
+.g-elegend .ln.g { border-top: 2px dashed var(--gov); }
+
+.g-main { display: flex; flex-direction: column; min-height: 0; }
+.g-note { color: var(--muted); font-size: 12px; margin: 0 0 8px; min-height: 18px; }
+.g-note b { color: #aab0bb; font-weight: 600; }
+.g-canvas {
+  position: relative; flex: 1 1 auto; min-height: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+  background:
+    repeating-linear-gradient(0deg, transparent 0, transparent 39px, rgba(255,255,255,.020) 39px, rgba(255,255,255,.020) 40px),
+    repeating-linear-gradient(90deg, transparent 0, transparent 39px, rgba(255,255,255,.020) 39px, rgba(255,255,255,.020) 40px),
+    var(--panel);
+}
+.g-canvas svg { display: block; width: 100%; height: 100%; cursor: grab; }
+.g-canvas svg:active { cursor: grabbing; }
+.g-canvas .node circle { transition: opacity .25s ease, stroke .2s ease; }
+.g-canvas .node text { font-size: 10px; fill: #c7ccd6; paint-order: stroke; stroke: #0c0e15; stroke-width: 3px; pointer-events: none; }
+.g-canvas .links path { fill: none; transition: opacity .25s ease; }
+.g-canvas .node.dim circle, .g-canvas .node.dim text { opacity: .07; }
+.g-canvas .links path.dim { opacity: .04; }
+.g-canvas .col-head { fill: #8b919c; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+.g-canvas .col-rule { stroke: var(--line); stroke-dasharray: 2 4; }
+.g-canvas .mx-grid line { stroke: rgba(255,255,255,.04); }
+.g-canvas .mx-sep { stroke: #353b48; stroke-width: 1; }
+.g-canvas .mx-grp { fill: #8b919c; font-size: 10px; font-weight: 600; }
+.g-canvas .cell { transition: opacity .2s ease; }
+.g-canvas .cell.dim { opacity: .05; }
+.g-zoombar { position: absolute; right: 10px; bottom: 10px; display: flex; flex-direction: column; gap: 4px; }
+.g-zoombar button { width: 28px; height: 28px; border: 1px solid var(--line); background: rgba(22,27,39,.85); color: var(--ink); border-radius: 6px; cursor: pointer; font-size: 15px; line-height: 1; }
+.g-zoombar button:hover { background: #1b2130; }
+.g-overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; flex-direction: column; pointer-events: none; text-align: center; padding: 20px; }
+.g-overlay .t { color: #ff6b66; font-weight: 700; font-size: 15px; }
+.g-overlay .s { color: var(--muted); font-size: 12.5px; margin-top: 4px; max-width: 340px; }
+.g-panel h4 { margin: 0 0 2px; font-size: 15px; color: #f0f3fa; }
+.g-panel .sub { color: var(--muted); font-size: 12.5px; margin-bottom: 12px; }
+.g-panel .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.g-panel .meta { font-size: 12.5px; color: #9aa0aa; }
+.g-panel .action { margin-top: 12px; font-size: 12.5px; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px; padding: 9px 10px; }
+.g-panel .counts { margin-bottom: 14px; }
+
+.g-tooltip { position: fixed; pointer-events: none; background: #1c2230; color: var(--ink); border: 1px solid var(--line); padding: 7px 10px; border-radius: 8px; font-size: 12px; opacity: 0; transition: opacity .1s; max-width: 250px; z-index: 50; box-shadow: 0 8px 26px rgba(0,0,0,.45); }
+.g-tooltip strong { color: #f0f3fa; }
+.g-tooltip .tt { color: var(--muted); font-size: 11px; }
+
+/* ---- pipeline (walkthrough) ---- */
+.pipe { display: flex; flex-direction: column; height: 100%; min-height: 0; gap: 12px; }
+.pipe-top { flex: none; }
+.pipe-scn { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.pipe-scn button { border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); padding: 6px 12px; border-radius: 999px; cursor: pointer; font-size: 12.5px; }
+.pipe-scn button:hover { background: #1b2130; }
+.pipe-scn button.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+.pipe-steps { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
+.pipe-step button { border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 12.5px; display: inline-flex; gap: 7px; align-items: center; }
+.pipe-step button .n { width: 18px; height: 18px; border-radius: 50%; background: var(--line); color: var(--ink); font-size: 11px; font-family: var(--mono); display: inline-flex; align-items: center; justify-content: center; }
+.pipe-step button.active { border-color: var(--blue); color: #fff; background: rgba(41,98,255,.15); }
+.pipe-step button.active .n { background: var(--blue); color: #fff; }
+.pipe-step button.done { color: var(--ink); }
+.pipe-arrow { color: var(--muted); margin: 0 7px; }
+.pipe-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.pipe-raw { background: #0e1118; border: 1px solid var(--line); border-radius: 8px; padding: 12px; font-family: var(--mono); font-size: 12px; color: #aab0bb; white-space: pre-wrap; margin: 0; }
+.pipe-hint { color: var(--muted); font-size: 12px; margin: 12px 0 0; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 7px 16px; font-size: 13px; align-items: baseline; }
+.kv .k { color: var(--muted); }
+.kv .v { color: var(--ink); font-family: var(--mono); word-break: break-word; }
+.pipe-impact { display: grid; grid-template-columns: 1fr 300px; gap: 14px; }
+.pipe-graph { height: 380px; }
+.pipe-side h5 { margin: 0 0 6px; font-size: 12.5px; color: #f0f3fa; }
+.pipe-side .grp { margin-bottom: 12px; }
+.pipe-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.tag { font-size: 11.5px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; color: var(--ink); }
+.tag.feed { border-color: rgba(41,98,255,.5); }
+.pipe-ticket { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-top: 12px; }
+.pipe-ticket h5 { margin: 0 0 8px; font-size: 13px; color: #f0f3fa; }
+.pipe-nav { display: flex; justify-content: space-between; flex: none; }
+.handoff { font-size: 12px; color: var(--muted); border-left: 2px solid var(--blue); padding: 2px 0 2px 10px; margin: 12px 0 0; }
+
+/* ---- responsive ---- */
+@media (max-width: 920px) {
+  .mdig { height: auto; }
+  .layers { grid-template-columns: 1fr; }
+  .g-wrap { grid-template-columns: 1fr; }
+  .g-side { overflow: visible; }
+  .g-canvas { height: 520px; flex: none; }
+  .mdig-view { min-height: 0; }
+  .pipe-impact { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="mdig">
+  <div class="mdig-head">
+    <div>
+      <h1>Market-data operations toolkit</h1>
+      <p>A role-inspired demo: classify a vendor / exchange notice, map everything it affects inside the firm, and route it for review &mdash; three layers, one workflow.</p>
+    </div>
+    <div class="mdig-byline">by <strong>Lucas Hsu</strong></div>
+  </div>
+  <div class="mdig-nav" id="mdig-nav"></div>
+  <div class="mdig-view" id="mdig-view"></div>
+  <div class="mdig-foot">Synthetic, role-inspired data &mdash; not affiliated with any firm, vendor, or exchange.</div>
+</div>
+<script id="site-data" type="application/json">{"meta": {"today": "2025-10-20", "version": "0.5.0-site", "synthetic": true}, "catalog": {"nodes": [{"id": "cme", "type": "venue", "name": "CME Group", "criticality": "", "owner": ""}, {"id": "nasdaq", "type": "venue", "name": "Nasdaq", "criticality": "", "owner": ""}, {"id": "eurex", "type": "venue", "name": "Eurex", "criticality": "", "owner": ""}, {"id": "ice", "type": "venue", "name": "Intercontinental Exchange", "criticality": "", "owner": ""}, {"id": "lse", "type": "venue", "name": "London Stock Exchange", "criticality": "", "owner": ""}, {"id": "bloomberg", "type": "vendor", "name": "Bloomberg", "criticality": "", "owner": ""}, {"id": "refinitiv", "type": "vendor", "name": "Refinitiv", "criticality": "", "owner": ""}, {"id": "cme_mdp3_futures", "type": "feed", "name": "CME MDP 3.0 Futures", "criticality": "", "owner": "market-data-eng"}, {"id": "nasdaq_totalview", "type": "feed", "name": "Nasdaq TotalView", "criticality": "", "owner": "market-data-eng"}, {"id": "eurex_emdi", "type": "feed", "name": "Eurex EMDI", "criticality": "", "owner": "market-data-eng"}, {"id": "bloomberg_refdata", "type": "feed", "name": "Bloomberg Reference Data", "criticality": "", "owner": "reference-data-ops"}, {"id": "ice_commodities", "type": "feed", "name": "ICE Commodities Feed", "criticality": "", "owner": ""}, {"id": "lse_sets", "type": "feed", "name": "LSE SETS", "criticality": "", "owner": "market-data-eng"}, {"id": "futures_quotes", "type": "dataset", "name": "Futures Quotes", "criticality": "", "owner": "market-data-eng"}, {"id": "futures_reference_data", "type": "dataset", "name": "Futures Reference Data", "criticality": "", "owner": "reference-data-ops"}, {"id": "futures_settlement_prices", "type": "dataset", "name": "Futures Settlement Prices", "criticality": "", "owner": "reference-data-ops"}, {"id": "equities_quotes", "type": "dataset", "name": "Equities Quotes (L2)", "criticality": "", "owner": "market-data-eng"}, {"id": "equities_reference_data", "type": "dataset", "name": "Equities Reference Data", "criticality": "", "owner": "reference-data-ops"}, {"id": "corporate_actions", "type": "dataset", "name": "Corporate Actions", "criticality": "", "owner": "reference-data-ops"}, {"id": "commodities_quotes", "type": "dataset", "name": "Commodities Quotes", "criticality": "", "owner": ""}, {"id": "lse_equities_quotes", "type": "dataset", "name": "LSE Equities Quotes", "criticality": "", "owner": "market-data-eng"}, {"id": "futures_pricer", "type": "system", "name": "Futures Pricer", "criticality": "medium", "owner": "futures-desk-ops"}, {"id": "risk_snapshotter", "type": "system", "name": "Risk Snapshotter", "criticality": "medium", "owner": "market-data-eng"}, {"id": "backtest_loader", "type": "system", "name": "Backtest Loader", "criticality": "medium", "owner": "market-data-eng"}, {"id": "pnl_reconciler", "type": "system", "name": "PnL Reconciler", "criticality": "medium", "owner": "futures-desk-ops"}, {"id": "equities_parser", "type": "system", "name": "Equities Parser", "criticality": "high", "owner": "market-data-eng"}, {"id": "market_data_validator", "type": "system", "name": "Market Data Validator", "criticality": "high", "owner": "market-data-eng"}, {"id": "equities_pricer", "type": "system", "name": "Equities Pricer", "criticality": "high", "owner": "equity-desk-ops"}, {"id": "entitlement_service", "type": "system", "name": "Entitlement Service", "criticality": "high", "owner": "market-data-eng"}, {"id": "lse_pricer", "type": "system", "name": "LSE Equities Pricer", "criticality": "medium", "owner": "market-data-eng"}, {"id": "futures_trading", "type": "desk", "name": "Futures Trading", "criticality": "", "owner": ""}, {"id": "risk", "type": "desk", "name": "Risk", "criticality": "", "owner": ""}, {"id": "equity_trading", "type": "desk", "name": "Equity Trading", "criticality": "", "owner": ""}, {"id": "market-data-eng", "type": "owner", "name": "Market Data Engineering", "criticality": "", "owner": ""}, {"id": "futures-desk-ops", "type": "owner", "name": "Futures Desk Ops", "criticality": "", "owner": ""}, {"id": "reference-data-ops", "type": "owner", "name": "Reference Data Ops", "criticality": "", "owner": ""}, {"id": "equity-desk-ops", "type": "owner", "name": "Equity Desk Ops", "criticality": "", "owner": ""}, {"id": "vendor-management", "type": "owner", "name": "Vendor Management", "criticality": "", "owner": ""}, {"id": "cme_redistribution_license", "type": "contract", "name": "CME Redistribution License", "criticality": "", "owner": ""}, {"id": "nasdaq_license", "type": "contract", "name": "Nasdaq Data License", "criticality": "", "owner": ""}, {"id": "bloomberg_agreement", "type": "contract", "name": "Bloomberg Data Agreement", "criticality": "", "owner": ""}, {"id": "eurex_license", "type": "contract", "name": "Eurex Data License", "criticality": "", "owner": ""}, {"id": "cme_futures_entitlement", "type": "entitlement", "name": "cme_futures_entitlement", "criticality": "", "owner": ""}, {"id": "nasdaq_nondisplay_entitlement", "type": "entitlement", "name": "nasdaq_nondisplay_entitlement", "criticality": "", "owner": ""}, {"id": "bloomberg_refdata_entitlement", "type": "entitlement", "name": "bloomberg_refdata_entitlement", "criticality": "", "owner": ""}, {"id": "corporate_actions_entitlement", "type": "entitlement", "name": "corporate_actions_entitlement", "criticality": "", "owner": ""}], "links": [{"source": "cme_mdp3_futures", "target": "cme", "edge_type": "published_by", "kind": "governance"}, {"source": "cme_mdp3_futures", "target": "market-data-eng", "edge_type": "owned_by", "kind": "governance"}, {"source": "cme_mdp3_futures", "target": "futures_quotes", "edge_type": "provides", "kind": "flow"}, {"source": "cme_mdp3_futures", "target": "futures_reference_data", "edge_type": "provides", "kind": "flow"}, {"source": "cme_mdp3_futures", "target": "futures_settlement_prices", "edge_type": "provides", "kind": "flow"}, {"source": "cme_mdp3_futures", "target": "cme_futures_entitlement", "edge_type": "requires_entitlement", "kind": "governance"}, {"source": "cme_mdp3_futures", "target": "cme_redistribution_license", "edge_type": "covered_by_contract", "kind": "governance"}, {"source": "nasdaq_totalview", "target": "nasdaq", "edge_type": "published_by", "kind": "governance"}, {"source": "nasdaq_totalview", "target": "market-data-eng", "edge_type": "owned_by", "kind": "governance"}, {"source": "nasdaq_totalview", "target": "equities_quotes", "edge_type": "provides", "kind": "flow"}, {"source": "nasdaq_totalview", "target": "equities_reference_data", "edge_type": "provides", "kind": "flow"}, {"source": "nasdaq_totalview", "target": "nasdaq_nondisplay_entitlement", "edge_type": "requires_entitlement", "kind": "governance"}, {"source": "nasdaq_totalview", "target": "nasdaq_license", "edge_type": "covered_by_contract", "kind": "governance"}, {"source": "eurex_emdi", "target": "eurex", "edge_type": "published_by", "kind": "governance"}, {"source": "eurex_emdi", "target": "market-data-eng", "edge_type": "owned_by", "kind": "governance"}, {"source": "eurex_emdi", "target": "eurex_license", "edge_type": "covered_by_contract", "kind": "governance"}, {"source": "bloomberg_refdata", "target": "bloomberg", "edge_type": "published_by", "kind": "governance"}, {"source": "bloomberg_refdata", "target": "reference-data-ops", "edge_type": "owned_by", "kind": "governance"}, {"source": "bloomberg_refdata", "target": "corporate_actions", "edge_type": "provides", "kind": "flow"}, {"source": "bloomberg_refdata", "target": "bloomberg_refdata_entitlement", "edge_type": "requires_entitlement", "kind": "governance"}, {"source": "bloomberg_refdata", "target": "bloomberg_agreement", "edge_type": "covered_by_contract", "kind": "governance"}, {"source": "ice_commodities", "target": "ice", "edge_type": "published_by", "kind": "governance"}, {"source": "ice_commodities", "target": "commodities_quotes", "edge_type": "provides", "kind": "flow"}, {"source": "lse_sets", "target": "lse", "edge_type": "published_by", "kind": "governance"}, {"source": "lse_sets", "target": "market-data-eng", "edge_type": "owned_by", "kind": "governance"}, {"source": "lse_sets", "target": "lse_equities_quotes", "edge_type": "provides", "kind": "flow"}, {"source": "futures_quotes", "target": "market-data-eng", "edge_type": "owned_by", "kind": "governance"}, {"source": "futures_quotes", "target": "futures_pricer", "edge_type": "consumed_by", "kind": "flow"}, {"source": "futures_quotes", "target": "risk_snapshotter", "edge_type": "consumed_by", "kind": "flow"}, {"source": "futures_reference_data", "target": "reference-data-ops", "edge_type": "owned_by", "kind": "governance"}, {"source": "futures_reference_data", "target": "futures_pricer", "edge_type": "consumed_by", "kind": "flow"}, {"source": "futures_reference_data", "target": "backtest_loader", "edge_type": "consumed_by", "kind": "flow"}, {"source": "futures_reference_data", "target": "pnl_reconciler", "edge_type": "consumed_by", "kind": "flow"}, {"source": "futures_settlement_prices", "target": "reference-data-ops", "edge_type": "owned_by", "kind": "governance"}, {"source": "futures_settlement_prices", "target": "risk_snapshotter", "edge_type": "consumed_by", "kind": "flow"}, {"source": "futures_settlement_prices", "target": "pnl_reconciler", "edge_type": "consumed_by", "kind": "flow"}, {"source": "equities_quotes", "target": "market-data-eng", "edge_type": "owned_by", "kind": "governance"}, {"source": "equities_quotes", "target": "equities_parser", "edge_type": "consumed_by", "kind": "flow"}, {"source": "equities_quotes", "target": "equities_pricer", "edge_type": "consumed_by", "kind": "flow"}, {"source": "equities_reference_data", "target": "reference-data-ops", "edge_type": "owned_by", "kind": "governance"}, {"source": "equities_reference_data", "target": "equities_parser", "edge_type": "consumed_by", "kind": "flow"}, {"source": "equities_reference_data", "target": "market_data_validator", "edge_type": "consumed_by", "kind": "flow"}, {"source": "equities_reference_data", "target": "backtest_loader", "edge_type": "consumed_by", "kind": "flow"}, {"source": "equities_reference_data", "target": "corporate_actions", "edge_type": "derived_from", "kind": "flow"}, {"source": "corporate_actions", "target": "reference-data-ops", "edge_type": "owned_by", "kind": "governance"}, {"source": "corporate_actions", "target": "corporate_actions_entitlement", "edge_type": "requires_entitlement", "kind": "governance"}, {"source": "corporate_actions", "target": "market_data_validator", "edge_type": "consumed_by", "kind": "flow"}, {"source": "corporate_actions", "target": "equities_pricer", "edge_type": "consumed_by", "kind": "flow"}, {"source": "commodities_quotes", "target": "risk_snapshotter", "edge_type": "consumed_by", "kind": "flow"}, {"source": "lse_equities_quotes", "target": "market-data-eng", "edge_type": "owned_by", "kind": "governance"}, {"source": "lse_equities_quotes", "target": "lse_pricer", "edge_type": "consumed_by", "kind": "flow"}, {"source": "futures_pricer", "target": "futures-desk-ops", "edge_type": "owned_by", "kind": "governance"}, {"source": "futures_pricer", "target": "futures_trading", "edge_type": "supports", "kind": "flow"}, {"source": "risk_snapshotter", "target": "market-data-eng", "edge_type": "owned_by", "kind": "governance"}, {"source": "risk_snapshotter", "target": "risk", "edge_type": "supports", "kind": "flow"}, {"source": "backtest_loader", "target": "market-data-eng", "edge_type": "owned_by", "kind": "governance"}, {"source": "backtest_loader", "target": "futures_trading", "edge_type": "supports", "kind": "flow"}, {"source": "pnl_reconciler", "target": "futures-desk-ops", "edge_type": "owned_by", "kind": "governance"}, {"source": "pnl_reconciler", "target": "risk", "edge_type": "supports", "kind": "flow"}, {"source": "equities_parser", "target": "market-data-eng", "edge_type": "owned_by", "kind": "governance"}, {"source": "equities_parser", "target": "equity_trading", "edge_type": "supports", "kind": "flow"}, {"source": "market_data_validator", "target": "market-data-eng", "edge_type": "owned_by", "kind": "governance"}, {"source": "market_data_validator", "target": "risk", "edge_type": "supports", "kind": "flow"}, {"source": "equities_pricer", "target": "equity-desk-ops", "edge_type": "owned_by", "kind": "governance"}, {"source": "equities_pricer", "target": "equity_trading", "edge_type": "supports", "kind": "flow"}, {"source": "entitlement_service", "target": "market-data-eng", "edge_type": "owned_by", "kind": "governance"}, {"source": "entitlement_service", "target": "equities_reference_data", "edge_type": "depends_on", "kind": "flow"}, {"source": "lse_pricer", "target": "market-data-eng", "edge_type": "owned_by", "kind": "governance"}, {"source": "lse_pricer", "target": "equity_trading", "edge_type": "supports", "kind": "flow"}]}, "scenarios": [{"id": "25_cme_feed_migration_urgent", "label": "CME feed migration", "raw_text": "From: marketdata-notices@cmegroup.com\nSubject: ACTION REQUIRED \u2013 MDP 3.0 Futures Production Migration (Accelerated)\n\nDear Client,\n\nCME Group will migrate the MDP 3.0 futures market-data feed to the new production\ngateway on 23 October 2025. This is an accelerated timeline. All firms consuming the\nfutures feed must validate connectivity and message handling before cutover. Failure\nto migrate will result in loss of the production feed.\n\nRegards,\nCME Global Market Data Operations", "router_output": {"id": "25_cme_feed_migration_urgent", "notice_type": "feed_migration", "source": "CME", "affected_exchange": "CME", "affected_asset_class": "futures", "effective_date": "2025-10-23", "urgency": "high", "impacted_systems": ["feed_handler"], "summary": "CME announces an urgent MDP 3.0 futures feed migration.", "confidence": 0.99, "needs_review": true}, "impact": {"matched_feeds": ["cme_mdp3_futures"], "unknown_feed": false, "graph_match_confidence": 0.92, "feeds": ["cme_mdp3_futures"], "datasets": ["futures_quotes", "futures_reference_data", "futures_settlement_prices"], "systems": ["futures_pricer", "risk_snapshotter", "backtest_loader", "pnl_reconciler"], "desks": ["futures_trading", "risk"], "owners": ["market-data-eng", "futures-desk-ops", "reference-data-ops"], "responder_owners": ["market-data-eng", "futures-desk-ops"], "contracts": ["cme_redistribution_license"], "entitlements": ["cme_futures_entitlement"], "impacted": ["cme_mdp3_futures", "futures_quotes", "futures_reference_data", "futures_settlement_prices", "futures_pricer", "risk_snapshotter", "backtest_loader", "pnl_reconciler", "futures_trading", "risk", "market-data-eng", "futures-desk-ops", "reference-data-ops", "cme_redistribution_license", "cme_futures_entitlement"], "counts": {"feeds": 1, "datasets": 3, "systems": 4, "desks": 2, "owners": 3, "contracts": 1, "entitlements": 1}}, "risk": {"review_required": true, "priority": "high", "risks": [{"flag": "urgent_effective_date", "detail": "effective date within 3 days"}, {"flag": "contract_expiring", "detail": "redistribution license expires within 30 days"}, {"flag": "missing_secondary_owner", "detail": "backtest_loader missing secondary owner"}], "recommended_action": "Open high-priority review ticket for market-data-eng and futures-desk-ops."}, "ticket": {"title": "High-priority CME futures feed migration impact review", "priority": "high", "assignees": ["market-data-eng", "futures-desk-ops"], "due_date": "2025-10-23", "notice_id": "25_cme_feed_migration_urgent", "affected_feeds": ["CME MDP 3.0 Futures"], "affected_systems": ["futures_pricer", "risk_snapshotter", "backtest_loader", "pnl_reconciler"], "risks": ["urgent_effective_date", "contract_expiring", "missing_secondary_owner"], "recommended_action": "Validate feed handler compatibility before cutover.", "audit": {"router_confidence": 0.99, "graph_match_confidence": 0.92, "review_required": true}}}, {"id": "12_nasdaq_totalview_schema_change", "label": "Nasdaq schema change", "raw_text": "From: datafeeds@nasdaq.com\nSubject: Nasdaq TotalView-ITCH \u2013 Message Schema Change\n\nHello,\n\nPlease be advised that the Nasdaq TotalView-ITCH equities feed will introduce a\nschema change to several order and reference message types. Downstream parsers and\nvalidators should be reviewed for compatibility prior to the effective date.\n\nNasdaq Market Data Distribution", "router_output": {"id": "12_nasdaq_totalview_schema_change", "notice_type": "format_change", "source": "Nasdaq", "affected_exchange": "Nasdaq", "affected_asset_class": "equities", "effective_date": "2025-11-15", "urgency": "medium", "impacted_systems": ["parser"], "summary": "Nasdaq TotalView ITCH message schema update.", "confidence": 0.95, "needs_review": true}, "impact": {"matched_feeds": ["nasdaq_totalview"], "unknown_feed": false, "graph_match_confidence": 0.92, "feeds": ["nasdaq_totalview"], "datasets": ["equities_quotes", "equities_reference_data"], "systems": ["backtest_loader", "equities_parser", "market_data_validator", "equities_pricer", "entitlement_service"], "desks": ["futures_trading", "risk", "equity_trading"], "owners": ["market-data-eng", "reference-data-ops", "equity-desk-ops"], "responder_owners": ["market-data-eng", "equity-desk-ops"], "contracts": ["nasdaq_license"], "entitlements": ["nasdaq_nondisplay_entitlement"], "impacted": ["nasdaq_totalview", "equities_quotes", "equities_reference_data", "backtest_loader", "equities_parser", "market_data_validator", "equities_pricer", "entitlement_service", "futures_trading", "risk", "equity_trading", "market-data-eng", "reference-data-ops", "equity-desk-ops", "nasdaq_license", "nasdaq_nondisplay_entitlement"], "counts": {"feeds": 1, "datasets": 2, "systems": 5, "desks": 3, "owners": 3, "contracts": 1, "entitlements": 1}}, "risk": {"review_required": true, "priority": "high", "risks": [{"flag": "critical_system_affected", "detail": "critical system affected: equities_parser, market_data_validator, equities_pricer, entitlement_service"}, {"flag": "missing_secondary_owner", "detail": "backtest_loader missing secondary owner"}, {"flag": "missing_secondary_owner", "detail": "equities_parser missing secondary owner"}], "recommended_action": "Open high-priority review ticket for market-data-eng and equity-desk-ops."}, "ticket": {"title": "High-priority Nasdaq equities format change impact review", "priority": "high", "assignees": ["market-data-eng", "equity-desk-ops"], "due_date": "2025-11-15", "notice_id": "12_nasdaq_totalview_schema_change", "affected_feeds": ["Nasdaq TotalView"], "affected_systems": ["backtest_loader", "equities_parser", "market_data_validator", "equities_pricer", "entitlement_service"], "risks": ["critical_system_affected", "missing_secondary_owner", "missing_secondary_owner"], "recommended_action": "Validate parser and schema compatibility before cutover.", "audit": {"router_confidence": 0.95, "graph_match_confidence": 0.92, "review_required": true}}}, {"id": "31_bloomberg_entitlement_update", "label": "Bloomberg entitlement update", "raw_text": "From: entitlements@bloomberg.net\nSubject: Reference Data Entitlement & Usage Scope Update\n\nDear Subscriber,\n\nThis notice concerns an update to your Bloomberg reference data entitlement and the\npermitted usage scope for equities and corporate actions data. Please review your\nnon-display and redistribution usage against the revised terms. Your current\nredistribution contract is approaching its renewal window.\n\nBloomberg Data License Team", "router_output": {"id": "31_bloomberg_entitlement_update", "notice_type": "entitlement_change", "source": "Bloomberg", "affected_exchange": "Bloomberg", "affected_asset_class": "equities", "effective_date": "2025-11-03", "urgency": "medium", "impacted_systems": [], "summary": "Bloomberg reference-data entitlement and usage-scope change.", "confidence": 0.9, "needs_review": true}, "impact": {"matched_feeds": ["bloomberg_refdata"], "unknown_feed": false, "graph_match_confidence": 0.92, "feeds": ["bloomberg_refdata"], "datasets": ["equities_reference_data", "corporate_actions"], "systems": ["backtest_loader", "equities_parser", "market_data_validator", "equities_pricer", "entitlement_service"], "desks": ["futures_trading", "risk", "equity_trading"], "owners": ["market-data-eng", "reference-data-ops", "equity-desk-ops"], "responder_owners": ["reference-data-ops", "market-data-eng", "equity-desk-ops"], "contracts": ["bloomberg_agreement"], "entitlements": ["bloomberg_refdata_entitlement", "corporate_actions_entitlement"], "impacted": ["bloomberg_refdata", "equities_reference_data", "corporate_actions", "backtest_loader", "equities_parser", "market_data_validator", "equities_pricer", "entitlement_service", "futures_trading", "risk", "equity_trading", "market-data-eng", "reference-data-ops", "equity-desk-ops", "bloomberg_agreement", "bloomberg_refdata_entitlement", "corporate_actions_entitlement"], "counts": {"feeds": 1, "datasets": 2, "systems": 5, "desks": 3, "owners": 3, "contracts": 1, "entitlements": 2}}, "risk": {"review_required": true, "priority": "high", "risks": [{"flag": "critical_system_affected", "detail": "critical system affected: equities_parser, market_data_validator, equities_pricer, entitlement_service"}, {"flag": "contract_expiring", "detail": "reference license expires within 30 days"}, {"flag": "entitlement_expiring", "detail": "bloomberg_refdata_entitlement expires within 30 days"}, {"flag": "missing_secondary_owner", "detail": "backtest_loader missing secondary owner"}, {"flag": "missing_secondary_owner", "detail": "equities_parser missing secondary owner"}], "recommended_action": "Open high-priority review ticket for reference-data-ops, market-data-eng, and equity-desk-ops."}, "ticket": {"title": "High-priority Bloomberg equities entitlement change impact review", "priority": "high", "assignees": ["reference-data-ops", "market-data-eng", "equity-desk-ops"], "due_date": "2025-11-03", "notice_id": "31_bloomberg_entitlement_update", "affected_feeds": ["Bloomberg Reference Data"], "affected_systems": ["backtest_loader", "equities_parser", "market_data_validator", "equities_pricer", "entitlement_service"], "risks": ["critical_system_affected", "contract_expiring", "entitlement_expiring", "missing_secondary_owner", "missing_secondary_owner"], "recommended_action": "Confirm entitlement and usage scope with the vendor.", "audit": {"router_confidence": 0.9, "graph_match_confidence": 0.92, "review_required": true}}}, {"id": "07_lse_routine_fee_update", "label": "LSE routine fee update", "raw_text": "From: marketdata@lseg.com\nSubject: Annual Market Data Fee Schedule \u2013 SETS\n\nDear Customer,\n\nThe London Stock Exchange is publishing its routine annual market-data fee schedule\nfor SETS equities, effective next quarter. There is no change to the feed format or\nconnectivity. No action is required beyond noting the updated commercial terms.\n\nLSEG Market Data", "router_output": {"id": "07_lse_routine_fee_update", "notice_type": "fee_update", "source": "LSE", "affected_exchange": "LSE", "affected_asset_class": "equities", "effective_date": "2026-04-01", "urgency": "low", "impacted_systems": [], "summary": "Routine LSE market-data fee schedule update; no schema or feed change.", "confidence": 0.97, "needs_review": false}, "impact": {"matched_feeds": ["lse_sets"], "unknown_feed": false, "graph_match_confidence": 0.92, "feeds": ["lse_sets"], "datasets": ["lse_equities_quotes"], "systems": ["lse_pricer"], "desks": ["equity_trading"], "owners": ["market-data-eng"], "responder_owners": ["market-data-eng"], "contracts": [], "entitlements": [], "impacted": ["lse_sets", "lse_equities_quotes", "lse_pricer", "equity_trading", "market-data-eng"], "counts": {"feeds": 1, "datasets": 1, "systems": 1, "desks": 1, "owners": 1, "contracts": 0, "entitlements": 0}}, "risk": {"review_required": false, "priority": "low", "risks": [], "recommended_action": "No review required; safe to auto-clear."}, "ticket": {"title": "Low-priority LSE equities fee update impact review", "priority": "low", "assignees": ["market-data-eng"], "due_date": "2026-04-01", "notice_id": "07_lse_routine_fee_update", "affected_feeds": ["LSE SETS"], "affected_systems": ["lse_pricer"], "risks": [], "recommended_action": "Review contract and usage scope with the commercial owner.", "audit": {"router_confidence": 0.97, "graph_match_confidence": 0.92, "review_required": false}}}, {"id": "40_tsx_unknown_venue_notice", "label": "TSX (unknown venue)", "raw_text": "From: notices@tsx.com\nSubject: TSX Market Data Feed Change\n\nHello,\n\nThe Toronto Stock Exchange (TSX) is announcing a change to its equities market-data\nfeed. Please review the attached technical specification and confirm your readiness.\n\nTMX Group Market Data", "router_output": {"id": "40_tsx_unknown_venue_notice", "notice_type": "feed_migration", "source": "TSX", "affected_exchange": "TSX", "affected_asset_class": "equities", "effective_date": "2025-11-20", "urgency": "low", "impacted_systems": [], "summary": "Feed change for a venue not present in the internal catalog.", "confidence": 0.7, "needs_review": false}, "impact": {"matched_feeds": [], "unknown_feed": true, "graph_match_confidence": 0.0, "feeds": [], "datasets": [], "systems": [], "desks": [], "owners": [], "responder_owners": [], "contracts": [], "entitlements": [], "impacted": [], "counts": {"feeds": 0, "datasets": 0, "systems": 0, "desks": 0, "owners": 0, "contracts": 0, "entitlements": 0}}, "risk": {"review_required": true, "priority": "medium", "risks": [{"flag": "unknown_feed", "detail": "could not match notice to a known feed or venue"}], "recommended_action": "Open medium-priority review ticket: unknown feed, manual triage required."}, "ticket": {"title": "Medium-priority TSX equities feed migration impact review", "priority": "medium", "assignees": [], "due_date": "2025-11-20", "notice_id": "40_tsx_unknown_venue_notice", "affected_feeds": [], "affected_systems": [], "risks": ["unknown_feed"], "recommended_action": "Validate feed handler compatibility before cutover.", "audit": {"router_confidence": 0.7, "graph_match_confidence": 0.0, "review_required": true}}}], "queue": [{"id": "25_cme_feed_migration_urgent", "label": "CME feed migration", "notice_type": "feed_migration", "venue": "CME", "asset_class": "futures", "effective_date": "2025-10-23", "urgency": "high", "router_needs_review": true, "router_confidence": 0.99, "matched_feeds": ["cme_mdp3_futures"], "unknown_feed": false, "graph_match_confidence": 0.92, "review_required": true, "status": "needs_review", "priority": "high", "risks": ["urgent_effective_date", "contract_expiring", "missing_secondary_owner"], "risk_details": ["effective date within 3 days", "redistribution license expires within 30 days", "backtest_loader missing secondary owner"], "assignees": ["market-data-eng", "futures-desk-ops"], "counts": {"feeds": 1, "datasets": 3, "systems": 4, "desks": 2, "owners": 3, "contracts": 1, "entitlements": 1}, "is_hero": true}, {"id": "12_nasdaq_totalview_schema_change", "label": "Nasdaq schema change", "notice_type": "format_change", "venue": "Nasdaq", "asset_class": "equities", "effective_date": "2025-11-15", "urgency": "medium", "router_needs_review": true, "router_confidence": 0.95, "matched_feeds": ["nasdaq_totalview"], "unknown_feed": false, "graph_match_confidence": 0.92, "review_required": true, "status": "needs_review", "priority": "high", "risks": ["critical_system_affected", "missing_secondary_owner", "missing_secondary_owner"], "risk_details": ["critical system affected: equities_parser, market_data_validator, equities_pricer, entitlement_service", "backtest_loader missing secondary owner", "equities_parser missing secondary owner"], "assignees": ["market-data-eng", "equity-desk-ops"], "counts": {"feeds": 1, "datasets": 2, "systems": 5, "desks": 3, "owners": 3, "contracts": 1, "entitlements": 1}, "is_hero": true}, {"id": "31_bloomberg_entitlement_update", "label": "Bloomberg entitlement update", "notice_type": "entitlement_change", "venue": "Bloomberg", "asset_class": "equities", "effective_date": "2025-11-03", "urgency": "medium", "router_needs_review": true, "router_confidence": 0.9, "matched_feeds": ["bloomberg_refdata"], "unknown_feed": false, "graph_match_confidence": 0.92, "review_required": true, "status": "needs_review", "priority": "high", "risks": ["critical_system_affected", "contract_expiring", "entitlement_expiring", "missing_secondary_owner", "missing_secondary_owner"], "risk_details": ["critical system affected: equities_parser, market_data_validator, equities_pricer, entitlement_service", "reference license expires within 30 days", "bloomberg_refdata_entitlement expires within 30 days", "backtest_loader missing secondary owner", "equities_parser missing secondary owner"], "assignees": ["reference-data-ops", "market-data-eng", "equity-desk-ops"], "counts": {"feeds": 1, "datasets": 2, "systems": 5, "desks": 3, "owners": 3, "contracts": 1, "entitlements": 2}, "is_hero": true}, {"id": "07_lse_routine_fee_update", "label": "LSE routine fee update", "notice_type": "fee_update", "venue": "LSE", "asset_class": "equities", "effective_date": "2026-04-01", "urgency": "low", "router_needs_review": false, "router_confidence": 0.97, "matched_feeds": ["lse_sets"], "unknown_feed": false, "graph_match_confidence": 0.92, "review_required": false, "status": "cleared", "priority": "low", "risks": [], "risk_details": [], "assignees": ["market-data-eng"], "counts": {"feeds": 1, "datasets": 1, "systems": 1, "desks": 1, "owners": 1, "contracts": 0, "entitlements": 0}, "is_hero": true}, {"id": "40_tsx_unknown_venue_notice", "label": "TSX (unknown venue)", "notice_type": "feed_migration", "venue": "TSX", "asset_class": "equities", "effective_date": "2025-11-20", "urgency": "low", "router_needs_review": false, "router_confidence": 0.7, "matched_feeds": [], "unknown_feed": true, "graph_match_confidence": 0.0, "review_required": true, "status": "needs_review", "priority": "medium", "risks": ["unknown_feed"], "risk_details": ["could not match notice to a known feed or venue"], "assignees": [], "counts": {"feeds": 0, "datasets": 0, "systems": 0, "desks": 0, "owners": 0, "contracts": 0, "entitlements": 0}, "is_hero": true}, {"id": "02_eurex_emdi_feed_migration", "label": "Eurex feed migration", "notice_type": "feed_migration", "venue": "Eurex", "asset_class": "futures", "effective_date": "2025-11-10", "urgency": "medium", "router_needs_review": false, "router_confidence": 0.91, "matched_feeds": ["eurex_emdi"], "unknown_feed": false, "graph_match_confidence": 0.92, "review_required": true, "status": "needs_review", "priority": "high", "risks": ["expired_contract", "stale_metadata"], "risk_details": ["redistribution license has expired", "eurex_emdi not verified in 90+ days"], "assignees": ["market-data-eng"], "counts": {"feeds": 1, "datasets": 0, "systems": 0, "desks": 0, "owners": 1, "contracts": 1, "entitlements": 0}, "is_hero": false}, {"id": "03_ice_commodities_format_change", "label": "ICE format change", "notice_type": "format_change", "venue": "ICE", "asset_class": "commodities", "effective_date": "2025-11-15", "urgency": "low", "router_needs_review": false, "router_confidence": 0.88, "matched_feeds": ["ice_commodities"], "unknown_feed": false, "graph_match_confidence": 0.92, "review_required": true, "status": "needs_review", "priority": "medium", "risks": ["missing_owner", "missing_owner"], "risk_details": ["ice_commodities has no owner", "commodities_quotes has no owner"], "assignees": ["market-data-eng"], "counts": {"feeds": 1, "datasets": 1, "systems": 1, "desks": 1, "owners": 1, "contracts": 0, "entitlements": 0}, "is_hero": false}, {"id": "04_cme_fee_update", "label": "CME fee update", "notice_type": "fee_update", "venue": "CME", "asset_class": "futures", "effective_date": "2025-12-01", "urgency": "low", "router_needs_review": false, "router_confidence": 0.95, "matched_feeds": ["cme_mdp3_futures"], "unknown_feed": false, "graph_match_confidence": 0.92, "review_required": true, "status": "needs_review", "priority": "medium", "risks": ["contract_expiring", "missing_secondary_owner"], "risk_details": ["redistribution license expires within 30 days", "backtest_loader missing secondary owner"], "assignees": ["market-data-eng", "futures-desk-ops"], "counts": {"feeds": 1, "datasets": 3, "systems": 4, "desks": 2, "owners": 3, "contracts": 1, "entitlements": 1}, "is_hero": false}, {"id": "05_nasdaq_regulatory_notice", "label": "Nasdaq regulatory notice", "notice_type": "regulatory_notice", "venue": "Nasdaq", "asset_class": "equities", "effective_date": "2025-11-20", "urgency": "medium", "router_needs_review": false, "router_confidence": 0.93, "matched_feeds": ["nasdaq_totalview"], "unknown_feed": false, "graph_match_confidence": 0.92, "review_required": true, "status": "needs_review", "priority": "high", "risks": ["critical_system_affected", "missing_secondary_owner", "missing_secondary_owner"], "risk_details": ["critical system affected: equities_parser, market_data_validator, equities_pricer, entitlement_service", "backtest_loader missing secondary owner", "equities_parser missing secondary owner"], "assignees": ["market-data-eng", "equity-desk-ops"], "counts": {"feeds": 1, "datasets": 2, "systems": 5, "desks": 3, "owners": 3, "contracts": 1, "entitlements": 1}, "is_hero": false}, {"id": "06_bloomberg_format_change", "label": "Bloomberg format change", "notice_type": "format_change", "venue": "Bloomberg", "asset_class": "equities", "effective_date": "2025-11-08", "urgency": "medium", "router_needs_review": true, "router_confidence": 0.9, "matched_feeds": ["bloomberg_refdata"], "unknown_feed": false, "graph_match_confidence": 0.92, "review_required": true, "status": "needs_review", "priority": "high", "risks": ["critical_system_affected", "contract_expiring", "entitlement_expiring", "missing_secondary_owner", "missing_secondary_owner"], "risk_details": ["critical system affected: equities_parser, market_data_validator, equities_pricer, entitlement_service", "reference license expires within 30 days", "bloomberg_refdata_entitlement expires within 30 days", "backtest_loader missing secondary owner", "equities_parser missing secondary owner"], "assignees": ["reference-data-ops", "market-data-eng", "equity-desk-ops"], "counts": {"feeds": 1, "datasets": 2, "systems": 5, "desks": 3, "owners": 3, "contracts": 1, "entitlements": 2}, "is_hero": false}, {"id": "08_refinitiv_symbol_reference_data", "label": "Refinitiv symbol reference data", "notice_type": "symbol_reference_data", "venue": "Refinitiv", "asset_class": "reference", "effective_date": "2025-11-12", "urgency": "medium", "router_needs_review": false, "router_confidence": 0.7, "matched_feeds": [], "unknown_feed": true, "graph_match_confidence": 0.0, "review_required": true, "status": "needs_review", "priority": "medium", "risks": ["unknown_feed"], "risk_details": ["could not match notice to a known feed or venue"], "assignees": [], "counts": {"feeds": 0, "datasets": 0, "systems": 0, "desks": 0, "owners": 0, "contracts": 0, "entitlements": 0}, "is_hero": false}, {"id": "09_lse_symbol_reference_data", "label": "LSE symbol reference data", "notice_type": "symbol_reference_data", "venue": "LSE", "asset_class": "equities", "effective_date": "2026-01-15", "urgency": "low", "router_needs_review": false, "router_confidence": 0.96, "matched_feeds": ["lse_sets"], "unknown_feed": false, "graph_match_confidence": 0.92, "review_required": false, "status": "cleared", "priority": "low", "risks": [], "risk_details": [], "assignees": ["market-data-eng"], "counts": {"feeds": 1, "datasets": 1, "systems": 1, "desks": 1, "owners": 1, "contracts": 0, "entitlements": 0}, "is_hero": false}, {"id": "10_cme_symbol_reference_data", "label": "CME symbol reference data", "notice_type": "symbol_reference_data", "venue": "CME", "asset_class": "futures", "effective_date": "2025-12-10", "urgency": "low", "router_needs_review": false, "router_confidence": 0.94, "matched_feeds": ["cme_mdp3_futures"], "unknown_feed": false, "graph_match_confidence": 0.92, "review_required": true, "status": "needs_review", "priority": "medium", "risks": ["contract_expiring", "missing_secondary_owner"], "risk_details": ["redistribution license expires within 30 days", "backtest_loader missing secondary owner"], "assignees": ["market-data-eng", "futures-desk-ops"], "counts": {"feeds": 1, "datasets": 3, "systems": 4, "desks": 2, "owners": 3, "contracts": 1, "entitlements": 1}, "is_hero": false}, {"id": "11_eurex_fee_update", "label": "Eurex fee update", "notice_type": "fee_update", "venue": "Eurex", "asset_class": "futures", "effective_date": "2025-11-30", "urgency": "low", "router_needs_review": false, "router_confidence": 0.92, "matched_feeds": ["eurex_emdi"], "unknown_feed": false, "graph_match_confidence": 0.92, "review_required": true, "status": "needs_review", "priority": "high", "risks": ["expired_contract", "stale_metadata"], "risk_details": ["redistribution license has expired", "eurex_emdi not verified in 90+ days"], "assignees": ["market-data-eng"], "counts": {"feeds": 1, "datasets": 0, "systems": 0, "desks": 0, "owners": 1, "contracts": 1, "entitlements": 0}, "is_hero": false}, {"id": "13_nasdaq_format_change_minor", "label": "Nasdaq format change", "notice_type": "format_change", "venue": "Nasdaq", "asset_class": "equities", "effective_date": "2026-02-01", "urgency": "low", "router_needs_review": false, "router_confidence": 0.95, "matched_feeds": ["nasdaq_totalview"], "unknown_feed": false, "graph_match_confidence": 0.92, "review_required": true, "status": "needs_review", "priority": "high", "risks": ["critical_system_affected", "missing_secondary_owner", "missing_secondary_owner"], "risk_details": ["critical system affected: equities_parser, market_data_validator, equities_pricer, entitlement_service", "backtest_loader missing secondary owner", "equities_parser missing secondary owner"], "assignees": ["market-data-eng", "equity-desk-ops"], "counts": {"feeds": 1, "datasets": 2, "systems": 5, "desks": 3, "owners": 3, "contracts": 1, "entitlements": 1}, "is_hero": false}, {"id": "14_ice_feed_migration_urgent", "label": "ICE feed migration", "notice_type": "feed_migration", "venue": "ICE", "asset_class": "commodities", "effective_date": "2025-10-24", "urgency": "high", "router_needs_review": true, "router_confidence": 0.97, "matched_feeds": ["ice_commodities"], "unknown_feed": false, "graph_match_confidence": 0.92, "review_required": true, "status": "needs_review", "priority": "high", "risks": ["urgent_effective_date", "missing_owner", "missing_owner"], "risk_details": ["effective date within 4 days", "ice_commodities has no owner", "commodities_quotes has no owner"], "assignees": ["market-data-eng"], "counts": {"feeds": 1, "datasets": 1, "systems": 1, "desks": 1, "owners": 1, "contracts": 0, "entitlements": 0}, "is_hero": false}, {"id": "15_bloomberg_fee_update", "label": "Bloomberg fee update", "notice_type": "fee_update", "venue": "Bloomberg", "asset_class": "equities", "effective_date": "2025-11-25", "urgency": "low", "router_needs_review": false, "router_confidence": 0.93, "matched_feeds": ["bloomberg_refdata"], "unknown_feed": false, "graph_match_confidence": 0.92, "review_required": true, "status": "needs_review", "priority": "high", "risks": ["critical_system_affected", "contract_expiring", "entitlement_expiring", "missing_secondary_owner", "missing_secondary_owner"], "risk_details": ["critical system affected: equities_parser, market_data_validator, equities_pricer, entitlement_service", "reference license expires within 30 days", "bloomberg_refdata_entitlement expires within 30 days", "backtest_loader missing secondary owner", "equities_parser missing secondary owner"], "assignees": ["reference-data-ops", "market-data-eng", "equity-desk-ops"], "counts": {"feeds": 1, "datasets": 2, "systems": 5, "desks": 3, "owners": 3, "contracts": 1, "entitlements": 2}, "is_hero": false}, {"id": "16_lse_feed_migration", "label": "LSE feed migration", "notice_type": "feed_migration", "venue": "LSE", "asset_class": "equities", "effective_date": "2026-03-01", "urgency": "low", "router_needs_review": false, "router_confidence": 0.96, "matched_feeds": ["lse_sets"], "unknown_feed": false, "graph_match_confidence": 0.92, "review_required": false, "status": "cleared", "priority": "low", "risks": [], "risk_details": [], "assignees": ["market-data-eng"], "counts": {"feeds": 1, "datasets": 1, "systems": 1, "desks": 1, "owners": 1, "contracts": 0, "entitlements": 0}, "is_hero": false}, {"id": "17_cme_options_entitlement_change", "label": "CME entitlement change", "notice_type": "entitlement_change", "venue": "CME", "asset_class": "options", "effective_date": "2025-11-18", "urgency": "medium", "router_needs_review": false, "router_confidence": 0.75, "matched_feeds": ["cme_mdp3_futures"], "unknown_feed": false, "graph_match_confidence": 0.6, "review_required": true, "status": "needs_review", "priority": "medium", "risks": ["contract_expiring", "missing_secondary_owner", "low_match_confidence"], "risk_details": ["redistribution license expires within 30 days", "backtest_loader missing secondary owner", "low graph match confidence (0.60)"], "assignees": ["market-data-eng", "futures-desk-ops"], "counts": {"feeds": 1, "datasets": 3, "systems": 4, "desks": 2, "owners": 3, "contracts": 1, "entitlements": 1}, "is_hero": false}, {"id": "18_xetra_feed_migration", "label": "Xetra feed migration", "notice_type": "feed_migration", "venue": "Xetra", "asset_class": "equities", "effective_date": "2025-11-22", "urgency": "medium", "router_needs_review": false, "router_confidence": 0.72, "matched_feeds": [], "unknown_feed": true, "graph_match_confidence": 0.0, "review_required": true, "status": "needs_review", "priority": "medium", "risks": ["unknown_feed"], "risk_details": ["could not match notice to a known feed or venue"], "assignees": [], "counts": {"feeds": 0, "datasets": 0, "systems": 0, "desks": 0, "owners": 0, "contracts": 0, "entitlements": 0}, "is_hero": false}], "audit": {"config": {"today": "2025-10-20", "contract_expiry_days": 30, "stale_days": 90}, "feeds_without_owner": ["ice_commodities"], "datasets_without_owner": ["commodities_quotes"], "systems_missing_secondary_owner": ["backtest_loader", "equities_parser"], "contracts_expiring": ["bloomberg_agreement", "cme_redistribution_license"], "expired_contracts": ["eurex_license"], "entitlements_expiring": ["bloomberg_refdata_entitlement"], "expired_entitlements": [], "feeds_without_consumers": ["eurex_emdi"], "stale_metadata": ["eurex_emdi"], "structural_issues": []}, "evaluation": {"metrics": {"evaluated": 5, "false_clears": 0, "feed_recall": 1.0, "dataset_recall": 1.0, "system_recall": 1.0, "owner_routing_accuracy": 1.0, "priority_accuracy": 0.8, "critical_risk_recall": 1.0, "unnecessary_review_rate": 0.0}, "per_notice": [{"notice_id": "25_cme_feed_migration_urgent", "feed_recall": 1.0, "dataset_recall": 1.0, "system_recall": 1.0, "owners_ok": true, "priority_ok": true, "risk_recall": 1.0, "false_clear": false, "unnecessary_review": false}, {"notice_id": "12_nasdaq_totalview_schema_change", "feed_recall": 1.0, "dataset_recall": 1.0, "system_recall": 1.0, "owners_ok": true, "priority_ok": true, "risk_recall": 1.0, "false_clear": false, "unnecessary_review": false}, {"notice_id": "31_bloomberg_entitlement_update", "feed_recall": 1.0, "dataset_recall": 1.0, "system_recall": 1.0, "owners_ok": true, "priority_ok": false, "risk_recall": 1.0, "false_clear": false, "unnecessary_review": false}, {"notice_id": "40_tsx_unknown_venue_notice", "feed_recall": null, "dataset_recall": null, "system_recall": null, "owners_ok": null, "priority_ok": true, "risk_recall": 1.0, "false_clear": false, "unnecessary_review": false}, {"notice_id": "07_lse_routine_fee_update", "feed_recall": 1.0, "dataset_recall": 1.0, "system_recall": null, "owners_ok": true, "priority_ok": true, "risk_recall": null, "false_clear": false, "unnecessary_review": false}], "config": {"today": "2025-10-20", "urgent_days": 7, "contract_expiry_days": 30, "stale_days": 90}}}</script>
+<script>/* MDIGGraph: mount the impact-graph visualiser into a container.
+   Usage: var api = MDIGGraph(containerEl, siteData, { controls:true, scenarioId:null });
+          api.setScenario(scenarioObj | null); api.setView('flow'|'force'|'matrix'); api.destroy();
+   Consumes siteData.catalog {nodes, links} and siteData.scenarios (site_data shape). */
+window.MDIGGraph = function (container, data, opts) {
+  opts = opts || {};
+  var controls = opts.controls !== false;
+
+  var COLORS = { venue: "#868a96", vendor: "#aab0bb", feed: "#2962ff", dataset: "#22d3ee", system: "#ff9f0a", desk: "#bb86fc", owner: "#5ed17a", contract: "#ef5350", entitlement: "#ff5fa2" };
+  var TYPE_ORDER = ["venue", "vendor", "feed", "dataset", "system", "desk", "owner", "contract", "entitlement"];
+  var TYPE_LABEL = { venue: "Venue", vendor: "Vendor", feed: "Feed", dataset: "Dataset", system: "System", desk: "Desk", owner: "Owner", contract: "Contract", entitlement: "Entitlement" };
+  var CORE = ["venue", "vendor", "feed", "dataset", "system", "desk"];
+  var COL = { venue: 0, vendor: 0, feed: 1, dataset: 2, system: 3, desk: 4 };
+  var GOVT = new Set(["owner", "contract", "entitlement"]);
+  var REVERSE = new Set(["derived_from", "depends_on"]);
+  var COL_HEADS = ["Source", "Feeds", "Datasets", "Systems", "Desks"];
+  var NOTES = {
+    flow: "<b>Flow view.</b> Data flows left &rarr; right: source &rarr; feeds &rarr; datasets &rarr; systems &rarr; desks. Solid lines are data flow; dashed lines show governance attached below. A notice enters at a feed and cascades rightward.",
+    force: "<b>Force view.</b> An organic layout where clusters emerge from the structure. Drag nodes; hover one to focus its neighbours. Use the type filter to isolate part of the graph.",
+    matrix: "<b>Matrix view.</b> A filled cell means the row item feeds into the column item. Grouped by type, so the feed&rarr;dataset&rarr;system&rarr;desk structure forms off-diagonal blocks."
+  };
+
+  // ---- skeleton ----
+  var sideHTML = controls
+    ? '<div class="g-side">' +
+      '<div class="g-sec"><p class="section-label">Scenarios</p><div class="g-scnlist" data-ref="scns"></div></div>' +
+      '<div class="g-sec"><p class="section-label">Layout</p><div class="g-views" data-ref="views">' +
+      '<button data-view="flow" class="active">Flow</button><button data-view="force">Force</button><button data-view="matrix">Matrix</button></div></div>' +
+      '<div class="g-sec"><p class="section-label">Show types</p>' +
+      '<div class="g-quick"><button data-ref="qall">All</button><button data-ref="qcore">Core flow</button></div>' +
+      '<div class="g-types" data-ref="types"></div>' +
+      '<div class="g-elegend"><span class="e"><span class="ln"></span>flow</span><span class="e"><span class="ln g"></span>governance</span></div></div>' +
+      '<div class="g-sec g-panel" data-ref="panel"></div></div>'
+    : "";
+  var noteHTML = controls ? '<div class="g-note" data-ref="note"></div>' : "";
+  container.innerHTML =
+    '<div class="g-wrap' + (controls ? "" : " focused") + '">' + sideHTML +
+    '<div class="g-main">' + noteHTML +
+    '<div class="g-canvas" data-ref="canvas"><svg data-ref="svg"></svg>' +
+    '<div class="g-overlay" data-ref="overlay"></div>' +
+    '<div class="g-zoombar"><button data-ref="zin" title="Zoom in">+</button><button data-ref="zout" title="Zoom out">\u2212</button><button data-ref="zreset" title="Reset">\u21ba</button></div>' +
+    "</div></div></div>";
+
+  function ref(n) { return container.querySelector('[data-ref="' + n + '"]'); }
+  var svgEl = ref("svg"), canvasEl = ref("canvas"), overlay = ref("overlay"), noteEl = ref("note"), panelEl = ref("panel");
+  var tooltip = document.createElement("div"); tooltip.className = "g-tooltip"; container.appendChild(tooltip);
+
+  // ---- data ----
+  var allNodes = data.catalog.nodes.map(function (d) { return Object.assign({}, d); });
+  var allLinks = data.catalog.links.map(function (d) { return Object.assign({}, d, { sid: d.source, tid: d.target }); });
+  var byId = new Map(allNodes.map(function (n) { return [n.id, n]; }));
+  var deg = {};
+  allLinks.forEach(function (l) { deg[l.sid] = (deg[l.sid] || 0) + 1; deg[l.tid] = (deg[l.tid] || 0) + 1; });
+  allNodes.forEach(function (n) { n.degree = deg[n.id] || 0; });
+  function rad(d) { return 6 + Math.sqrt(d.degree) * 2.1; }
+  var visibleTypes = new Set(TYPE_ORDER);
+  var nodes = allNodes.slice(), links = allLinks.slice(), neighbors = new Map();
+
+  var width = canvasEl.clientWidth || 820, height = canvasEl.clientHeight || 520;
+  var svg = d3.select(svgEl).attr("viewBox", [0, 0, width, height]);
+  var defs = svg.append("defs");
+  var glow = defs.append("filter").attr("id", "g-glow").attr("x", "-60%").attr("y", "-60%").attr("width", "220%").attr("height", "220%");
+  glow.append("feGaussianBlur").attr("stdDeviation", "1.6").attr("result", "b");
+  var fm = glow.append("feMerge"); fm.append("feMergeNode").attr("in", "b"); fm.append("feMergeNode").attr("in", "SourceGraphic");
+  defs.append("marker").attr("id", "g-arrow").attr("viewBox", "0 -5 10 10").attr("refX", 8).attr("refY", 0).attr("markerWidth", 7).attr("markerHeight", 7).attr("orient", "auto").append("path").attr("d", "M0,-3.4L7,0L0,3.4").attr("fill", "#727b8a");
+  var gMain = svg.append("g");
+  var zoomB = d3.zoom().scaleExtent([1, 4]).translateExtent([[0, 0], [width, height]]).on("zoom", function (e) { gMain.attr("transform", e.transform); });
+  svg.call(zoomB);
+  var gHeaders = gMain.append("g"), gEdges = gMain.append("g").attr("class", "links"), gNodes = gMain.append("g");
+  var gMatrix = gMain.append("g").attr("class", "matrix").style("display", "none");
+
+  var hoveredId = null, view = opts.view || "flow";
+  var active = null, activeSet = null, originSet = new Set();
+  var nodeSel = d3.select(null), edgeSel = d3.select(null), cellSel = null;
+
+  function showTip(e, html) { tooltip.innerHTML = html; tooltip.style.left = (e.clientX + 14) + "px"; tooltip.style.top = (e.clientY + 12) + "px"; tooltip.style.opacity = 1; }
+  function hideTip() { tooltip.style.opacity = 0; }
+  function nodeTip(e, d) {
+    var s = "<div><strong>" + d.name + "</strong></div><div class='tt'>" + (TYPE_LABEL[d.type] || d.type);
+    if (d.criticality) s += " &middot; " + d.criticality + " criticality";
+    if (d.owner) s += "</div><div class='tt'>owner: " + d.owner;
+    showTip(e, s + "</div>");
+  }
+
+  var drag = d3.drag()
+    .on("start", function (e, d) { if (view !== "force") return; if (!e.active) sim.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
+    .on("drag", function (e, d) { if (view !== "force") return; d.fx = e.x; d.fy = e.y; })
+    .on("end", function (e, d) { if (!e.active) sim.alphaTarget(0); d.fx = null; d.fy = null; });
+
+  var sim = d3.forceSimulation(nodes)
+    .force("link", d3.forceLink(links).id(function (d) { return d.id; }).distance(function (l) { return l.kind === "governance" ? 66 : 54; }).strength(0.5))
+    .force("charge", d3.forceManyBody().strength(-210))
+    .force("center", d3.forceCenter(width / 2, height / 2))
+    .force("collide", d3.forceCollide().radius(function (d) { return rad(d) + 5; }))
+    .force("x", d3.forceX(width / 2).strength(0.03)).force("y", d3.forceY(height / 2).strength(0.05)).stop();
+
+  sim.on("tick", function () {
+    if (view !== "force") return;
+    nodes.forEach(function (d) { var r = rad(d); d.x = Math.max(r, Math.min(width - r, d.x)); d.y = Math.max(r, Math.min(height - r, d.y)); });
+    edgeSel.attr("d", function (l) { return "M" + l.source.x + "," + l.source.y + "L" + l.target.x + "," + l.target.y; });
+    nodeSel.attr("transform", function (d) { return "translate(" + d.x + "," + d.y + ")"; });
+  });
+
+  function rebuildNeighbors() {
+    neighbors = new Map();
+    nodes.forEach(function (n) { neighbors.set(n.id, new Set([n.id])); });
+    links.forEach(function (l) { neighbors.get(l.sid).add(l.tid); neighbors.get(l.tid).add(l.sid); });
+  }
+  function renderGraph() {
+    var ns = gNodes.selectAll("g.node").data(nodes, function (d) { return d.id; });
+    ns.exit().remove();
+    var nEnter = ns.enter().append("g").attr("class", "node");
+    nEnter.append("circle").attr("r", rad).attr("fill", function (d) { return COLORS[d.type] || "#999"; }).attr("stroke", "#0c0e15").attr("stroke-width", 1.5).attr("filter", "url(#g-glow)");
+    nEnter.append("text").attr("x", function (d) { return rad(d) + 3; }).attr("y", 4).text(function (d) { return d.name; });
+    nodeSel = nEnter.merge(ns);
+    nodeSel.on("mousemove", nodeTip).on("mouseenter", function (e, d) { hoveredId = d.id; refresh(); }).on("mouseleave", function () { hoveredId = null; hideTip(); refresh(); }).call(drag);
+    var es = gEdges.selectAll("path").data(links, function (d) { return d.sid + "|" + d.tid + "|" + d.edge_type; });
+    es.exit().remove();
+    var eEnter = es.enter().append("path").attr("stroke-width", 1.2).attr("opacity", 0.9).attr("stroke", function (l) { return l.kind === "governance" ? "var(--gov)" : "var(--flow)"; });
+    edgeSel = eEnter.merge(es);
+  }
+  function applyFilter() {
+    nodes = allNodes.filter(function (n) { return visibleTypes.has(n.type); });
+    var ids = new Set(nodes.map(function (n) { return n.id; }));
+    links = allLinks.filter(function (l) { return ids.has(l.sid) && ids.has(l.tid); });
+    renderGraph(); rebuildNeighbors();
+    sim.nodes(nodes); sim.force("link").links(links);
+    setView(view);
+  }
+
+  function shorten(a, b, by) { var dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1; return { x: b.x - dx / len * by, y: b.y - dy / len * by }; }
+  function flowEnds(l) { return REVERSE.has(l.edge_type) ? [l.target, l.source] : [l.source, l.target]; }
+  function flowPath(l) { var e = flowEnds(l), a = e[0], b = e[1], end = shorten(a, b, rad(b) + 7), mx = (a.x + end.x) / 2; return "M" + a.x + "," + a.y + " C " + mx + "," + a.y + " " + mx + "," + end.y + " " + end.x + "," + end.y; }
+  function layoutFlow() {
+    sim.stop();
+    var margin = 70, topY = 56, bandTop = height * 0.74, bandBot = height - 26, innerW = width - 2 * margin;
+    var cols = { 0: [], 1: [], 2: [], 3: [], 4: [] }, gov = [];
+    nodes.forEach(function (n) { if (GOVT.has(n.type)) gov.push(n); else cols[COL[n.type]].push(n); });
+    function srt(a, b) { return (TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type)) || d3.ascending(a.name, b.name); }
+    for (var c = 0; c < 5; c++) {
+      var arr = cols[c]; arr.sort(srt);
+      var x = margin + innerW * c / 4;
+      arr.forEach(function (n, i) { n.x = x; n.y = topY + (i + 0.5) * (bandTop - 24 - topY) / Math.max(arr.length, 1); });
+    }
+    gov.sort(srt);
+    gov.forEach(function (n, i) { n.x = margin + (gov.length > 1 ? innerW * i / (gov.length - 1) : innerW / 2); n.y = (bandTop + bandBot) / 2; });
+    nodeSel.attr("transform", function (d) { return "translate(" + d.x + "," + d.y + ")"; });
+    edgeSel.attr("d", flowPath).attr("marker-end", function (l) { return l.kind === "flow" ? "url(#g-arrow)" : null; }).attr("stroke-dasharray", function (l) { return l.kind === "governance" ? "4 3" : null; });
+    gHeaders.selectAll("*").remove();
+    COL_HEADS.forEach(function (t, c) {
+      var x = margin + innerW * c / 4;
+      gHeaders.append("text").attr("class", "col-head").attr("x", x).attr("y", 26).attr("text-anchor", "middle").text(t);
+      if (c > 0) gHeaders.append("line").attr("class", "col-rule").attr("x1", margin + innerW * (c - 0.5) / 4).attr("x2", margin + innerW * (c - 0.5) / 4).attr("y1", 38).attr("y2", bandTop - 26);
+    });
+    if (gov.length) {
+      gHeaders.append("line").attr("class", "col-rule").attr("x1", margin - 24).attr("x2", width - margin + 24).attr("y1", bandTop - 14).attr("y2", bandTop - 14);
+      gHeaders.append("text").attr("class", "col-head").attr("x", margin - 24).attr("y", bandTop - 20).attr("text-anchor", "start").text("Governance \u2014 attached, not traversed");
+    }
+  }
+  function buildMatrix() {
+    var sorted = nodes.slice().sort(function (a, b) { return (TYPE_ORDER.indexOf(a.type) - TYPE_ORDER.indexOf(b.type)) || d3.ascending(a.id, b.id); });
+    var N = sorted.length, m = 96;
+    if (N === 0) { gMatrix.selectAll("*").remove(); cellSel = null; return; }
+    var size = Math.min((width - m - 16) / N, (height - m - 16) / N);
+    var idx = new Map(sorted.map(function (n, i) { return [n.id, i]; }));
+    var gridW = m + N * size, offX = Math.max(0, (width - gridW) / 2);
+    gMatrix.attr("transform", "translate(" + offX + ",0)").selectAll("*").remove();
+    var gl = gMatrix.append("g").attr("class", "mx-grid");
+    for (var i = 0; i <= N; i++) {
+      gl.append("line").attr("x1", m).attr("x2", m + N * size).attr("y1", m + i * size).attr("y2", m + i * size);
+      gl.append("line").attr("y1", m).attr("y2", m + N * size).attr("x1", m + i * size).attr("x2", m + i * size);
+    }
+    var groups = [], start = 0;
+    for (var k = 1; k <= N; k++) { if (k === N || sorted[k].type !== sorted[start].type) { groups.push({ type: sorted[start].type, start: start, end: k }); start = k; } }
+    groups.forEach(function (g) {
+      var x0 = m + g.start * size, x1 = m + g.end * size, mid = (x0 + x1) / 2;
+      gMatrix.append("text").attr("class", "mx-grp").attr("x", mid).attr("y", m - 6).attr("text-anchor", "middle").text(TYPE_LABEL[g.type]);
+      gMatrix.append("text").attr("class", "mx-grp").attr("x", m - 8).attr("y", mid).attr("text-anchor", "end").attr("dominant-baseline", "middle").text(TYPE_LABEL[g.type]);
+      gMatrix.append("line").attr("class", "mx-sep").attr("x1", x0).attr("x2", x0).attr("y1", m).attr("y2", m + N * size);
+      gMatrix.append("line").attr("class", "mx-sep").attr("y1", x0).attr("y2", x0).attr("x1", m).attr("x2", m + N * size);
+    });
+    gMatrix.append("text").attr("class", "mx-grp").attr("x", m).attr("y", 22).text("rows feed into columns \u2192");
+    cellSel = gMatrix.append("g").selectAll("rect.cell").data(links).join("rect").attr("class", "cell")
+      .attr("x", function (l) { return m + idx.get(l.sid) * size; }).attr("y", function (l) { return m + idx.get(l.tid) * size; })
+      .attr("width", Math.max(2, size - 1)).attr("height", Math.max(2, size - 1))
+      .attr("fill", function (l) { return l.kind === "governance" ? "var(--gov)" : (COLORS[byId.get(l.sid).type] || "#999"); })
+      .attr("opacity", function (l) { return l.kind === "governance" ? 0.55 : 0.9; })
+      .on("mousemove", function (e, l) { showTip(e, "<strong>" + byId.get(l.sid).name + "</strong> &rarr; <strong>" + byId.get(l.tid).name + "</strong><div class='tt'>" + l.edge_type.replace(/_/g, " ") + "</div>"); })
+      .on("mouseleave", hideTip);
+  }
+
+  function refresh() {
+    var keepNode, keepLink, focusId = active ? null : hoveredId;
+    if (active) { keepNode = function (d) { return activeSet.has(d.id); }; keepLink = function (l) { return activeSet.has(l.sid) && activeSet.has(l.tid); }; }
+    else if (focusId && view !== "matrix") { var nb = neighbors.get(focusId) || new Set([focusId]); keepNode = function (d) { return nb.has(d.id); }; keepLink = function (l) { return l.sid === focusId || l.tid === focusId; }; }
+    else { keepNode = function () { return true; }; keepLink = function () { return true; }; }
+    nodeSel.classed("dim", function (d) { return !keepNode(d); });
+    edgeSel.classed("dim", function (l) { return !keepLink(l); });
+    nodeSel.select("circle").attr("stroke", function (d) { return originSet.has(d.id) ? "#f0f3fa" : "#0c0e15"; }).attr("stroke-width", function (d) { return originSet.has(d.id) ? 2.5 : 1.5; });
+    nodeSel.select("text").style("display", function (d) { return labelVisible(d) ? null : "none"; });
+    if (cellSel) cellSel.classed("dim", function (l) { return active && !(activeSet.has(l.sid) && activeSet.has(l.tid)); });
+  }
+  function labelVisible(d) {
+    if (d.id === hoveredId) return true;
+    if (active) return activeSet.has(d.id);
+    if (view === "flow") return !GOVT.has(d.type);
+    return d.type === "feed" || d.type === "desk";
+  }
+
+  function scnImpacted(scn) { return new Set((scn.impact.impacted || []).concat(scn.impact.matched_feeds || [])); }
+  function setScenario(scn) {
+    active = scn;
+    if (scn) { activeSet = scnImpacted(scn); originSet = new Set(scn.impact.matched_feeds || []); }
+    else { activeSet = null; originSet = new Set(); }
+    var unmapped = scn && (scn.impact.unknown_feed || (scn.impact.matched_feeds || []).length === 0);
+    if (unmapped) { overlay.innerHTML = "<div class='t'>Unknown venue &mdash; no internal mapping</div><div class='s'>This notice doesn't resolve to any catalog node, so nothing lights up. The router marked it no-review, but the graph forces review &mdash; the safety guard.</div>"; overlay.style.display = "flex"; }
+    else { overlay.style.display = "none"; }
+    if (panelEl) renderPanel(scn);
+    refresh();
+  }
+  function setView(v) {
+    view = v;
+    if (controls) { container.querySelectorAll('[data-ref="views"] button').forEach(function (b) { b.classList.toggle("active", b.getAttribute("data-view") === v); }); }
+    if (noteEl) noteEl.innerHTML = NOTES[v];
+    var nl = v !== "matrix";
+    gEdges.style("display", nl ? null : "none"); gNodes.style("display", nl ? null : "none");
+    gHeaders.style("display", v === "flow" ? null : "none"); gMatrix.style("display", v === "matrix" ? null : "none");
+    if (v === "force") { edgeSel.attr("marker-end", null).attr("stroke-dasharray", function (l) { return l.kind === "governance" ? "4 3" : null; }); sim.alpha(0.7).restart(); }
+    else if (v === "flow") { layoutFlow(); }
+    else { buildMatrix(); }
+    refresh();
+  }
+
+  function renderPanel(scn) {
+    if (!scn) {
+      var c = {}; nodes.forEach(function (n) { c[n.type] = (c[n.type] || 0) + 1; });
+      var rows = TYPE_ORDER.filter(function (t) { return visibleTypes.has(t); }).map(function (t) { return "<div class='count'><b>" + (c[t] || 0) + "</b>" + TYPE_LABEL[t] + "</div>"; }).join("");
+      panelEl.innerHTML = "<h4>The whole graph</h4><div class='sub'>" + nodes.length + " shown &middot; " + links.length + " edges</div><div class='counts'>" + rows + "</div><p class='section-label'>What this is</p><div class='meta'>Each node is a market-data asset or stakeholder. A notice resolves to a feed, then impact is the full downstream cascade. Owners, contracts, and entitlements are attached for routing and risk. Pick a scenario to trace one notice.</div>";
+      return;
+    }
+    var r = scn.risk, im = scn.impact, ro = scn.router_output || {};
+    var prio = "<span class='badge prio-" + r.priority + "'>" + r.priority + " priority</span>";
+    var review = r.review_required ? "<span class='badge review'>review required</span>" : "<span class='badge clear'>auto-cleared</span>";
+    var conf = im.unknown_feed ? "<span class='badge nomatch'>no catalog match</span>" : "<span class='badge conf'>match " + im.graph_match_confidence.toFixed(2) + "</span>";
+    var cs = im.counts;
+    var countRow = "<div class='count'><b>" + cs.feeds + "</b>feeds</div><div class='count'><b>" + cs.datasets + "</b>datasets</div><div class='count'><b>" + cs.systems + "</b>systems</div><div class='count'><b>" + cs.desks + "</b>desks</div><div class='count'><b>" + cs.owners + "</b>owners</div><div class='count'><b>" + (cs.contracts + cs.entitlements) + "</b>contract/ent.</div>";
+    var risks = r.risks.length ? r.risks.map(function (x) { return "<div class='risk'>" + x.detail + "</div>"; }).join("") : "<div class='risk none'>no risks &mdash; safe to clear</div>";
+    panelEl.innerHTML = "<h4>" + scn.label + "</h4><div class='sub'>" + scn.notice_type.replace(/_/g, " ") + " &middot; " + (ro.affected_exchange || "") + " / " + (ro.affected_asset_class || "") + "</div><div class='badges'>" + review + prio + conf + "</div><div class='counts'>" + countRow + "</div><p class='section-label'>Risks</p>" + risks + "<div class='action'>" + r.recommended_action + "</div>";
+  }
+
+  // ---- controls wiring (full mode) ----
+  if (controls) {
+    var scnList = d3.select(ref("scns"));
+    scnList.append("button").attr("class", "g-scn active").html("Full graph").on("click", function () { pick(this, null); });
+    (data.scenarios || []).forEach(function (scn) {
+      var sub = scn.impact.unknown_feed ? "unknown venue" : (scn.risk.review_required ? "review \u00b7 " + scn.risk.priority : "auto-cleared");
+      scnList.append("button").attr("class", "g-scn").html(scn.label + "<span class='m'>" + sub + "</span>").on("click", function () { pick(this, scn); });
+    });
+    function pick(el, scn) { container.querySelectorAll(".g-scn").forEach(function (b) { b.classList.remove("active"); }); el.classList.add("active"); setScenario(scn); }
+    container.querySelectorAll('[data-ref="views"] button').forEach(function (b) { b.addEventListener("click", function () { setView(b.getAttribute("data-view")); }); });
+    var typeList = d3.select(ref("types"));
+    TYPE_ORDER.forEach(function (t) {
+      var lab = typeList.append("label").attr("class", "g-type").attr("data-type", t);
+      lab.append("input").attr("type", "checkbox").property("checked", true).on("change", function () { toggleType(t, this.checked); });
+      lab.append("span").attr("class", "dot").style("background", COLORS[t]);
+      lab.append("span").text(TYPE_LABEL[t]);
+    });
+    function syncTypes() { container.querySelectorAll(".g-type").forEach(function (el) { var t = el.getAttribute("data-type"), on = visibleTypes.has(t); el.classList.toggle("off", !on); el.querySelector("input").checked = on; }); }
+    function toggleType(t, on) { if (on) visibleTypes.add(t); else visibleTypes.delete(t); syncTypes(); applyFilter(); }
+    function setTypes(list) { visibleTypes = new Set(list); syncTypes(); applyFilter(); }
+    ref("qall").addEventListener("click", function () { setTypes(TYPE_ORDER); });
+    ref("qcore").addEventListener("click", function () { setTypes(CORE); });
+  }
+  ref("zin").addEventListener("click", function () { svg.transition().duration(220).call(zoomB.scaleBy, 1.4); });
+  ref("zout").addEventListener("click", function () { svg.transition().duration(220).call(zoomB.scaleBy, 1 / 1.4); });
+  ref("zreset").addEventListener("click", function () { svg.transition().duration(300).call(zoomB.transform, d3.zoomIdentity); });
+
+  function onResize() {
+    var w = canvasEl.clientWidth || width, h = canvasEl.clientHeight || height;
+    if (Math.abs(w - width) < 2 && Math.abs(h - height) < 2) return;
+    width = w; height = h;
+    svg.attr("viewBox", [0, 0, width, height]);
+    zoomB.translateExtent([[0, 0], [width, height]]);
+    sim.force("center", d3.forceCenter(width / 2, height / 2)).force("x", d3.forceX(width / 2).strength(0.03)).force("y", d3.forceY(height / 2).strength(0.05));
+    setView(view);
+  }
+  window.addEventListener("resize", onResize);
+
+  // ---- init ----
+  renderGraph(); rebuildNeighbors();
+  sim.alpha(1).restart(); for (var t = 0; t < 140; t++) sim.tick(); sim.stop();
+  setView(view);
+  var initScn = null;
+  if (opts.scenarioId) { (data.scenarios || []).forEach(function (s) { if (s.id === opts.scenarioId) initScn = s; }); }
+  setScenario(initScn);
+
+  return {
+    setScenario: setScenario,
+    setView: setView,
+    destroy: function () { window.removeEventListener("resize", onResize); container.innerHTML = ""; }
+  };
+};
+
+/* Cluster shell: loads embedded site data, routes between views, renders Overview,
+   Pipeline (the 4-stage walkthrough), the Graph tab (mounts MDIGGraph), and stubs. */
+(function () {
+  var dataEl = document.getElementById("site-data");
+  var DATA = JSON.parse(dataEl.textContent);
+  var viewEl = document.getElementById("mdig-view");
+  var NAME = new Map(DATA.catalog.nodes.map(function (n) { return [n.id, n.name]; }));
+  function nm(id) { return NAME.get(id) || id; }
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  var TABS = [
+    { id: "overview", label: "Overview" },
+    { id: "pipeline", label: "Pipeline" },
+    { id: "control", label: "Control Plane", soon: true },
+    { id: "graph", label: "Graph" },
+    { id: "notes", label: "Notes", soon: true }
+  ];
+  var current = "overview";
+  var pipe = { scn: 0, stage: 0 };
+  var graphApi = null, pipeGraph = null;
+
+  // ---- nav ----
+  var nav = document.getElementById("mdig-nav");
+  TABS.forEach(function (t) {
+    var b = document.createElement("button");
+    b.innerHTML = t.label + (t.soon ? "<span class='soon'>soon</span>" : "");
+    b.setAttribute("data-tab", t.id);
+    if (t.soon) b.disabled = false; // navigable but shows a stub
+    b.addEventListener("click", function () { go(t.id); });
+    nav.appendChild(b);
+  });
+  function syncNav() { nav.querySelectorAll("button").forEach(function (b) { b.classList.toggle("active", b.getAttribute("data-tab") === current); }); }
+
+  function destroyGraphs() {
+    if (graphApi) { graphApi.destroy(); graphApi = null; }
+    if (pipeGraph) { pipeGraph.destroy(); pipeGraph = null; }
+  }
+  function go(tab) { current = tab; if (location.hash !== "#" + tab) location.hash = tab; syncNav(); render(); }
+
+  function render() {
+    destroyGraphs();
+    viewEl.innerHTML = "";
+    if (current === "overview") renderOverview();
+    else if (current === "pipeline") renderPipeline();
+    else if (current === "graph") renderGraphTab();
+    else renderStub(current);
+  }
+
+  // ---- overview ----
+  function renderOverview() {
+    var q = DATA.queue, rev = q.filter(function (x) { return x.review_required; }).length;
+    var m = DATA.evaluation.metrics;
+    viewEl.innerHTML =
+      '<div class="ov-grid">' +
+      '<div class="ov-hero"><h2>Market-data operations, end to end</h2>' +
+      "<p>A role-inspired proof of concept: a vendor or exchange notice is classified, mapped to everything it touches inside the firm, and turned into a routed, reviewable action \u2014 with a safety metric at each step. All data here is synthetic.</p></div>" +
+      '<div class="ov-stats">' +
+      stat(DATA.catalog.nodes.length, "graph nodes") + stat(DATA.catalog.links.length, "dependencies") +
+      stat(q.length, "notices") + stat(rev, "need review") + stat(q.length - rev, "auto-cleared") +
+      stat(m.false_clears, "false clears", true) + "</div>" +
+      '<div class="layers">' +
+      layer("Layer 1", "Notification Router", "What is this notice?", "Ingests messy vendor / exchange notices and classifies them into structured events \u2014 type, venue, asset class, urgency \u2014 deciding what needs a human.", "false auto-accepts = 0") +
+      layer("Layer 2", "Impact Graph", "What does it affect?", "Maps each notice onto an internal dependency graph and computes the full downstream impact: datasets, systems, desks, owners, contracts, entitlements.", "false clears = 0", "l2") +
+      layer("Layer 3", "Ops Control Plane", "What do we do next?", "Turns impact into operations: a review queue, owner routing, risk overview, and quality metrics \u2014 the operator's view across every notice.", "this site") +
+      "</div>" +
+      '<div class="ov-cta"><button class="btn primary" data-go="pipeline">Start the walkthrough \u2192</button>' +
+      '<button class="btn" data-go="graph">Explore the graph</button>' +
+      '<span class="mdig-syn">Synthetic, role-inspired data \u2014 not affiliated with any firm, vendor, or exchange.</span></div>' +
+      "</div>";
+    viewEl.querySelectorAll("[data-go]").forEach(function (b) { b.addEventListener("click", function () { go(b.getAttribute("data-go")); }); });
+  }
+  function stat(v, label, good) { return '<div class="ov-stat' + (good ? " good" : "") + '"><b>' + v + "</b><span>" + label + "</span></div>"; }
+  function layer(n, title, q, body, metric, cls) {
+    return '<div class="layer ' + (cls || "") + '"><span class="lnum">' + n + '</span><h3>' + title + '</h3><div class="q">' + q + "</div><p>" + body + '</p><div class="metric">' + metric + "</div></div>";
+  }
+
+  // ---- pipeline ----
+  var STEPS = ["Raw notice", "Router output", "Impact", "Decision"];
+  function renderPipeline() {
+    var html =
+      '<div class="pipe"><div class="pipe-top">' +
+      '<div class="pipe-scn" data-ref="pscn"></div>' +
+      '<div class="pipe-steps" data-ref="psteps"></div></div>' +
+      '<div class="pipe-body" data-ref="pbody"></div>' +
+      '<div class="pipe-nav"><button class="btn" data-ref="pprev">\u2190 Back</button><button class="btn primary" data-ref="pnext">Next \u2192</button></div></div>';
+    viewEl.innerHTML = html;
+    var pscn = viewEl.querySelector('[data-ref="pscn"]');
+    DATA.scenarios.forEach(function (s, i) {
+      var b = document.createElement("button");
+      b.textContent = s.label; b.setAttribute("data-i", i);
+      b.addEventListener("click", function () { pipe.scn = i; pipe.stage = 0; updatePipe(); });
+      pscn.appendChild(b);
+    });
+    var psteps = viewEl.querySelector('[data-ref="psteps"]');
+    STEPS.forEach(function (label, i) {
+      var wrap = document.createElement("span"); wrap.className = "pipe-step";
+      var b = document.createElement("button");
+      b.innerHTML = "<span class='n'>" + (i + 1) + "</span>" + label; b.setAttribute("data-s", i);
+      b.addEventListener("click", function () { pipe.stage = i; updatePipe(); });
+      wrap.appendChild(b); psteps.appendChild(wrap);
+      if (i < STEPS.length - 1) { var a = document.createElement("span"); a.className = "pipe-arrow"; a.textContent = "\u2192"; psteps.appendChild(a); }
+    });
+    viewEl.querySelector('[data-ref="pprev"]').addEventListener("click", function () { if (pipe.stage > 0) { pipe.stage--; updatePipe(); } });
+    viewEl.querySelector('[data-ref="pnext"]').addEventListener("click", function () { if (pipe.stage < STEPS.length - 1) { pipe.stage++; updatePipe(); } });
+    updatePipe();
+  }
+  function updatePipe() {
+    if (pipeGraph) { pipeGraph.destroy(); pipeGraph = null; }
+    var scn = DATA.scenarios[pipe.scn];
+    viewEl.querySelectorAll(".pipe-scn button").forEach(function (b) { b.classList.toggle("active", +b.getAttribute("data-i") === pipe.scn); });
+    viewEl.querySelectorAll(".pipe-step button").forEach(function (b) { var i = +b.getAttribute("data-s"); b.classList.toggle("active", i === pipe.stage); b.classList.toggle("done", i < pipe.stage); });
+    viewEl.querySelector('[data-ref="pprev"]').disabled = pipe.stage === 0;
+    viewEl.querySelector('[data-ref="pnext"]').disabled = pipe.stage === STEPS.length - 1;
+    var body = viewEl.querySelector('[data-ref="pbody"]');
+    if (pipe.stage === 0) body.innerHTML = stageRaw(scn);
+    else if (pipe.stage === 1) body.innerHTML = stageRouter(scn);
+    else if (pipe.stage === 2) { body.innerHTML = stageImpact(scn); pipeGraph = MDIGGraph(body.querySelector('[data-ref="pgraph"]'), DATA, { controls: false, scenarioId: scn.id }); }
+    else body.innerHTML = stageDecision(scn);
+  }
+  function stageRaw(scn) {
+    return '<div class="card"><p class="section-label">Stage 1 \u00b7 Raw inbound notice</p>' +
+      '<pre class="pipe-raw">' + esc(scn.raw_text) + "</pre>" +
+      '<p class="pipe-hint">This is the kind of unstructured message a market-data team receives. Layer 1 (the notification router) reads it and produces the structured event in the next stage.</p></div>';
+  }
+  function stageRouter(scn) {
+    var r = scn.router_output;
+    var nr = r.needs_review ? "<span class='badge review'>needs review</span>" : "<span class='badge clear'>no review</span>";
+    return '<div class="card"><p class="section-label">Stage 2 \u00b7 Router output (Layer 1)</p>' +
+      '<div class="kv">' +
+      kv("notice type", r.notice_type) + kv("source", r.source) + kv("venue", r.affected_exchange) +
+      kv("asset class", r.affected_asset_class) + kv("effective date", r.effective_date) + kv("urgency", r.urgency) +
+      kv("confidence", r.confidence) + kv("router flag", nr) + "</div>" +
+      '<p class="handoff">Handoff to Layer 2: the venue and asset class are what the impact graph resolves to a feed. Note the router\u2019s review flag \u2014 the graph can override it.</p></div>';
+  }
+  function kv(k, v) { return '<div class="k">' + k + '</div><div class="v">' + v + "</div>"; }
+  function stageImpact(scn) {
+    var im = scn.impact;
+    var side =
+      group("Matched feed", im.unknown_feed ? "<span class='tag'>none \u2014 unknown venue</span>" : tags(im.matched_feeds, "feed")) +
+      group("Datasets", tags(im.datasets)) +
+      group("Systems", tags(im.systems)) +
+      group("Desks", tags(im.desks)) +
+      group("Owners notified", tags(im.responder_owners)) +
+      group("Risks", scn.risk.risks.length ? scn.risk.risks.map(function (x) { return "<div class='risk'>" + esc(x.detail) + "</div>"; }).join("") : "<div class='risk none'>no risks</div>");
+    return '<div class="card"><p class="section-label">Stage 3 \u00b7 Impact (Layer 2)</p>' +
+      '<div class="pipe-impact"><div class="pipe-graph" data-ref="pgraph"></div>' +
+      '<div class="pipe-side">' + side + "</div></div></div>";
+  }
+  function group(title, inner) { return '<div class="grp"><h5>' + title + '</h5><div class="pipe-tags">' + inner + "</div></div>"; }
+  function tags(ids, cls) {
+    if (!ids || !ids.length) return "<span class='tag'>none</span>";
+    return ids.map(function (id) { return "<span class='tag " + (cls || "") + "'>" + esc(nm(id)) + "</span>"; }).join("");
+  }
+  function stageDecision(scn) {
+    var r = scn.risk, im = scn.impact, t = scn.ticket;
+    var review = r.review_required ? "<span class='badge review'>review required</span>" : "<span class='badge clear'>auto-cleared</span>";
+    var conf = im.unknown_feed ? "<span class='badge nomatch'>no catalog match</span>" : "<span class='badge conf'>match " + im.graph_match_confidence.toFixed(2) + "</span>";
+    var ticket =
+      '<div class="pipe-ticket"><h5>Enriched review ticket (Layer 3 input)</h5><div class="kv">' +
+      kv("title", esc(t.title)) + kv("priority", t.priority) + kv("assignees", (t.assignees || []).join(", ") || "\u2014") +
+      kv("due date", t.due_date || "\u2014") + kv("action", esc(t.recommended_action)) +
+      kv("router conf.", t.audit.router_confidence) + kv("graph conf.", t.audit.graph_match_confidence) +
+      kv("review", String(t.audit.review_required)) + "</div></div>";
+    return '<div class="card"><p class="section-label">Stage 4 \u00b7 Decision &amp; ticket (Layer 3)</p>' +
+      '<div class="g-panel"><div class="badges">' + review + "<span class='badge prio-" + r.priority + "'>" + r.priority + " priority</span>" + conf + "</div>" +
+      '<div class="action">' + esc(r.recommended_action) + "</div></div>" + ticket +
+      (r.review_required ? '<p class="pipe-hint">This ticket lands in the Control Plane queue for a human to action.</p>' : '<p class="pipe-hint">No risks and a clean match: the system clears this notice without a human \u2014 and the evaluation confirms it never clears one that should have been reviewed.</p>') +
+      "</div>";
+  }
+
+  // ---- graph tab ----
+  function renderGraphTab() {
+    var c = document.createElement("div"); c.style.height = "100%";
+    viewEl.appendChild(c);
+    graphApi = MDIGGraph(c, DATA, { controls: true });
+  }
+
+  // ---- stubs ----
+  function renderStub(tab) {
+    var t = TABS.filter(function (x) { return x.id === tab; })[0] || { label: tab };
+    var next = tab === "control"
+      ? "The operator dashboard \u2014 review queue, risk overview, the catalog audit, and the evaluation metrics \u2014 is the next build (Phase D)."
+      : "The ecosystem write-up and condensed architecture notes are coming (Phase E).";
+    viewEl.innerHTML = '<div class="stub"><h2>' + t.label + "</h2><p>" + next + " For now, explore the Pipeline and the Graph.</p></div>";
+  }
+
+  // ---- boot ----
+  function fromHash() { var h = (location.hash || "").replace("#", ""); return TABS.some(function (t) { return t.id === h; }) ? h : "overview"; }
+  window.addEventListener("hashchange", function () { var h = fromHash(); if (h !== current) { current = h; syncNav(); render(); } });
+  current = fromHash();
+  syncNav();
+  render();
+})();
+</script>
+</body>
+</html>
