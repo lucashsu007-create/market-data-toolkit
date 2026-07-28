@@ -103,8 +103,8 @@ else in that file is readable source — roughly 700 lines.
 
 - **Phase D** — the Control Plane tab: review queue, risk overview, catalog audit, evaluation metrics
 - **Phase E** — architecture notes and the ecosystem write-up
-- Move extraction and evaluation into this repository so the metrics are reproducible rather than
-  precomputed, and grow the notice corpus well beyond 5
+- Build the extraction and evaluation as code in this repository, so the metrics are reproducible
+  rather than precomputed, and grow the notice corpus well beyond 5
 
 ## Licence
 
