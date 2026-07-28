@@ -33,6 +33,7 @@ def _score_one(estate: Estate, notice, label) -> dict:
 
     return {
         "notice_id": notice.id,
+        "label": dict(label),  # expected values travel with the row
         "venue_ok": routed.venue == notice.venue,
         "type_ok": routed.notice_type == label["type"],
         "feed_recall": feed_recall,

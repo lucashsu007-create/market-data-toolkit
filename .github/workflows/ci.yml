@@ -17,8 +17,11 @@ jobs:
       - name: Tests
         run: pytest --cov=mdt --cov-report=term-missing
 
-      # data/estate.json is now authored (source of truth flipped when the
-      # utp_sip feed was added for the real notice corpus): the demo payload
-      # will be *generated from it* by scripts/build_payload.py, not the other
-      # way round. extract_estate.py remains as the historical bootstrap.
-      # A payload-drift check returns here once build_payload.py exists.
+      # data/estate.json + corpus/ are the source of truth; the demo payload
+      # is generated from them. If this fails, someone edited one side without
+      # regenerating the other.
+      - name: Demo payload is up to date
+        run: |
+          python scripts/build_payload.py
+          git diff --exit-code index.html \
+            || { echo "::error::run scripts/build_payload.py and commit the result"; exit 1; }
