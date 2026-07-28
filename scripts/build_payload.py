@@ -147,6 +147,44 @@ def build() -> dict:
             "source_url": notice.source_url,
             "notice_no": notice.notice_no,
             "depth": notice.depth,
+            # --- click-to-route breakdown ---------------------------------
+            # The demo lets you open any queued notice and watch it being
+            # classified, so each row carries what the router saw and what it
+            # was graded against.
+            #
+            # `title`/`summary` are our own words about a public notice, not
+            # exchange copy — the same licensing-safe shape the corpus uses.
+            "title": notice.title,
+            "summary": notice.summary,
+            # Everything the notice reaches, so the breakdown can light up the
+            # estate graph without re-deriving the traversal in JavaScript.
+            "impacted": rollup["impacted"],
+            "datasets": rollup["datasets"],
+            "systems": rollup["systems"],
+            "desks": rollup["desks"],
+            "evidence": routed.evidence,
+            "type_scores": [[lab, sc] for lab, sc in routed.type_scores],
+            "type_margin": round(routed.type_margin, 2),
+            # Graded per field rather than pass/fail overall: type is right on
+            # every notice, and collapsing that with priority (which is not)
+            # would hide the only interesting result in here.
+            "truth": {
+                "type": labels[nid]["type"],
+                "feeds": labels[nid].get("feeds", []),
+                "priority": labels[nid]["priority"],
+                "escalate": labels[nid]["escalate"],
+                "note": labels[nid].get("note"),
+            },
+            "graded": {
+                "venue_ok": (routed.venue or "") == notice.venue,
+                "type_ok": routed.notice_type == labels[nid]["type"],
+                "priority_ok": ticket.priority == labels[nid]["priority"],
+                "escalate_ok": ticket.review_required == labels[nid]["escalate"],
+                # A false clear is the failure that matters: the pipeline said
+                # "no review needed" on something that needed one.
+                "false_clear": (not ticket.review_required) and labels[nid]["escalate"],
+                "unnecessary_review": ticket.review_required and not labels[nid]["escalate"],
+            },
         }
         queue.append(entry)
 

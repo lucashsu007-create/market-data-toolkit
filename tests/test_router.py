@@ -62,6 +62,58 @@ def test_notice_types_are_closed_set():
     assert r.notice_type in NOTICE_TYPES
 
 
+# -- the category contest -------------------------------------------------
+#
+# type_scores is what the UI renders as a scoreboard, so its ordering and its
+# relationship to the reported confidence are a contract, not an internal.
+
+def test_type_scores_are_ranked_best_first():
+    r = route("CME will retire and decommission the legacy multicast channels.")
+    assert r.type_scores, "a matching notice should show a contest"
+    weights = [score for _, score in r.type_scores]
+    assert weights == sorted(weights, reverse=True)
+
+
+def test_winner_is_the_top_scoring_category():
+    r = route("Nasdaq TotalView message format change: new fields and tag 271.")
+    assert r.notice_type == r.type_scores[0][0]
+
+
+def test_margin_is_derived_from_the_top_two_scores():
+    """The confidence shown next to the scoreboard must follow from it."""
+    r = route("CME will retire the legacy multicast channels on 2026-09-01.")
+    top = r.type_scores[0][1]
+    second = r.type_scores[1][1] if len(r.type_scores) > 1 else 0
+    assert r.type_margin == pytest.approx((top - second) / top)
+
+
+def test_unopposed_win_has_margin_one():
+    r = route("Exchange holiday: markets closed.")
+    if len(r.type_scores) == 1:
+        assert r.type_margin == pytest.approx(1.0)
+
+
+def test_no_match_shows_no_contest():
+    """admin_other is a fallback, so there must be no scoreboard to imply one."""
+    r = route("Miscellaneous announcement with nothing recognisable.")
+    assert r.type_scores == []
+    assert r.type_margin == 0.0
+
+
+def test_ranking_is_deterministic_under_ties():
+    text = "CME will retire and decommission the legacy multicast channels."
+    assert route(text).type_scores == route(text).type_scores
+
+
+def test_as_dict_serialises_scores_as_json_safe_pairs():
+    d = route("CME will retire the legacy multicast channels.").as_dict()
+    assert all(
+        isinstance(pair, list) and len(pair) == 2 and isinstance(pair[1], int)
+        for pair in d["type_scores"]
+    )
+    assert isinstance(d["type_margin"], float)
+
+
 # -- dev-split regression (the tuned rules must keep their dev behaviour) --
 
 def test_dev_split_venue_and_type_accuracy(dev_ids):

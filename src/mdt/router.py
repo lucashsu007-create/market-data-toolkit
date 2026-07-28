@@ -88,6 +88,14 @@ class RouterResult:
     unknown_products: list[str]
     confidence: float
     evidence: dict[str, list[str]] = field(default_factory=dict)
+    #: Every category that scored, best first, as (label, weight) pairs. The
+    #: classification is a contest between these, and the runners-up are what
+    #: make the confidence legible — a 7-vs-3 win and a 7-vs-6 win are very
+    #: different claims. Kept so callers can show the contest, not just its
+    #: winner.
+    type_scores: list[tuple[str, int]] = field(default_factory=list)
+    #: (top - second) / top. 0.0 = tie, 1.0 = unopposed. Feeds `confidence`.
+    type_margin: float = 0.0
 
     @property
     def unknown_target(self) -> bool:
@@ -103,6 +111,8 @@ class RouterResult:
             "unknown_target": self.unknown_target,
             "confidence": round(self.confidence, 2),
             "evidence": self.evidence,
+            "type_scores": [[label, score] for label, score in self.type_scores],
+            "type_margin": round(self.type_margin, 2),
         }
 
 
@@ -135,14 +145,18 @@ def route(text: str, published: str | None = None) -> RouterResult:
     # near-tie, regardless of absolute score)
     type_scores, type_hits = _score(low, _TYPE_RULES)
     if type_scores:
-        ranked = sorted(type_scores.items(), key=lambda kv: -kv[1])
+        # Ties broken by label so the ranking is deterministic; otherwise the
+        # scoreboard could reorder between runs and the payload would churn.
+        ranked = sorted(type_scores.items(), key=lambda kv: (-kv[1], kv[0]))
         notice_type = ranked[0][0]
         top = ranked[0][1]
         second = ranked[1][1] if len(ranked) > 1 else 0
         margin = (top - second) / top  # 0 = tie, 1 = unopposed
         evidence["type"] = type_hits[notice_type]
     else:
-        notice_type, margin = "admin_other", 0.0
+        # Nothing matched: no contest to show, and the fallback label is a
+        # default rather than a decision.
+        ranked, notice_type, margin = [], "admin_other", 0.0
 
     # effective date: first ISO date in the text that isn't the publish date
     effective = None
@@ -184,4 +198,6 @@ def route(text: str, published: str | None = None) -> RouterResult:
         unknown_products=sorted(set(unknown)),
         confidence=min(confidence, 1.0),
         evidence=evidence,
+        type_scores=ranked,
+        type_margin=margin,
     )
