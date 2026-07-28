@@ -14,36 +14,31 @@ no network calls at runtime.
 
 ## Status — read this first
 
-**This is a work in progress, and two of its five tabs are unbuilt stubs.**
+All five tabs are built, and the demo renders **computed** output: `scripts/build_payload.py` runs
+the pipeline (`src/mdt/`) over the corpus and estate and regenerates the page's embedded data. CI
+fails if the committed payload drifts from a fresh build.
 
-| Tab | State |
-|---|---|
-| **Overview** | Built — the estate end to end, with summary stats and pipeline layers |
-| **Pipeline** | Built — step a notice through all four stages |
-| **Graph** | Built — flow / force / matrix views of the estate, with zoom and filtering |
-| **Control Plane** | **Stub** — the operator dashboard (review queue, risk overview, catalog audit, evaluation metrics) is not built |
-| **Notes** | **Stub** — architecture write-up not written |
+**What is real:** the 26 notices in `corpus/` are real public notices — 21 from Nasdaq
+(nasdaqtrader.com, full depth) and 5 from CME (cmegroup.com blocks automated access; those records
+are reconstructed from public metadata and marked `depth: shallow`). Records store the source URL,
+structured fields and an authored paraphrase — never the original text, which is the exchange's
+copyright.
 
-**All data in this repository is synthetic.** It is generated, not captured from any real venue,
-vendor or firm, and it is labelled as such in the payload itself (`meta.synthetic: true`). No
-proprietary or licensed market data is included. Node names like "CME Group" or "Bloomberg" refer to
-plausible real-world entities in an invented estate; none of the relationships, contracts, or
-entitlements are real.
-
-The bundled dataset contains precomputed pipeline output and evaluation results. **The web app
-renders those results; it does not compute them.** Replacing them with real code is in progress —
-see below.
+**What is synthetic:** the estate. No firm publishes its real feed→dataset→system→desk topology, so
+the graph is invented, and its lifecycle dates are authored against a reference date of 2025-10-20.
+Node names like "CME Group" refer to real venues in an invented estate; none of the relationships,
+contracts or entitlements are real.
 
 ## What it models
 
-A typed graph of **46 nodes** and **69 edges**:
+A typed graph of **48 nodes** and **74 edges**:
 
-- **Node types** — venue (5), vendor (2), feed (6), dataset (8), system (9), desk (3), owner (5), contract (4), entitlement (4)
+- **Node types** — venue (5), vendor (2), feed (7), dataset (9), system (9), desk (3), owner (5), contract (4), entitlement (4)
 - **Edge types** — `published_by`, `provides`, `derived_from`, `consumed_by`, `depends_on`, `supports`, `owned_by`, `covered_by_contract`, `requires_entitlement`
 
-Alongside it: 20 queued notices, 5 fully worked scenarios with raw notice text, a governance audit
-(ownership gaps, expiring and expired contracts and entitlements, orphaned feeds, stale metadata),
-and an evaluation of the pipeline's own output.
+Alongside it: the 26-notice review queue, 5 fully worked scenarios, a governance audit
+(ownership gaps, orphaned feeds, contract/entitlement expiry, stale metadata), and the pipeline's
+evaluation of its own output on a frozen held-out split.
 
 ## The pipeline
 
@@ -61,31 +56,41 @@ Stage 4 carries its own confidence signals (`router_confidence`, `graph_match_co
 
 ## Evaluation
 
-The bundled results score the pipeline over 5 worked notices:
+A stratified dev/held-out split (19/7, seeded — `corpus/split.json`) was **frozen before any
+classification rule existed**. Rules were tuned on dev only; held-out was scored once and is
+reported as-is:
 
-| Metric | Value |
-|---|---|
-| Feed / dataset / system recall | 1.00 |
-| Owner routing accuracy | 1.00 |
-| Critical risk recall | 1.00 |
-| Priority accuracy | 0.80 |
-| False clears | 0 |
-| Unnecessary review rate | 0.00 |
+| Metric | Dev (n=19) | **Held-out (n=7)** |
+|---|---|---|
+| Venue accuracy | 1.00 | **0.86** |
+| Type accuracy | 1.00 | **1.00** |
+| Feed recall | 1.00 | **0.86** |
+| Priority accuracy | 0.95 | **0.43** |
+| False clears | 0 | **1** |
+| Unnecessary reviews | 0 | **1** |
 
-**These numbers are weak evidence and should not be quoted as more.** n = 5 on synthetic notices
-the same author designed, and several per-notice fields are `null` where a check did not apply. The
-one honest signal in the table is `priority_accuracy` at 0.80 — one notice out of five was assigned
-the wrong priority. A meaningful evaluation needs a larger corpus the pipeline has not been tuned
-against.
+The held-out numbers are the honest ones, and they are mixed. Three of the four failures are on the
+conservative side (priority too high, one extra review). The dangerous one is the **false clear**:
+`nasdaq-utp2026-15` carries no venue markers and no recognisable product name in its title/summary,
+so it sailed through as a confident format change attached to nothing. The systemic cause: the
+escalation rule covered *unknown* products but not *no product at all*. The one-line fix (escalate on
+empty feed resolution) is deliberately **not applied** — it was discovered on held-out data, and
+rules are only tuned on dev. It ships in the next iteration and gets measured on a fresh corpus.
+
+n=7 is a smoke signal, not a benchmark. Labels and paraphrases share an author with the rules; the
+frozen split mitigates tuning leakage, not labelling bias.
 
 ## The Python package (`mdt`)
 
-Being built to replace the precomputed output with code that actually derives it. Dependency-free at
-runtime — the estate is small enough that an explicit adjacency map is clearer than a graph library,
-and the traversal semantics are the interesting part.
+Everything the demo displays is derived by this package. Dependency-free at runtime — the estate is
+small enough that an explicit adjacency map is clearer than a graph library, and the traversal
+semantics are the interesting part.
 
-**Done so far:** the estate model and loader, impact resolution (Layer 2), and the parts of the
-governance audit the data can support.
+All three layers exist as code: `router.py` (Layer 1 — deterministic, evidence-logging keyword
+scoring with margin-based confidence), `impact.py` (Layer 2 — typed graph traversal), `decision.py`
+(Layer 3 — priority, owner routing, and the escalation rule: unknown targets, low confidence and
+high priority always go to a human), `audit.py` (governance checks), `evaluate.py` (scores both
+splits with explicit n and split provenance).
 
 ```bash
 python -m venv .venv && .venv/bin/pip install -e ".[dev]"
@@ -101,21 +106,16 @@ print(impact.systems, impact.blast_radius)
 print(run_audit(estate).as_dict())
 ```
 
-### Reproducing the published audit
+### The governance audit, and two grades of honesty
 
-Three of the demo's ten audit checks are re-derived here and asserted, in
-`tests/test_audit.py`, to match the shipped figures **exactly**:
-
-- `feeds_without_owner`
-- `datasets_without_owner`
-- `feeds_without_consumers` — which is transitive: a feed *provides* a dataset, *consumed_by* a
-  system, which *supports* a desk. A one-hop check would flag every feed in the estate.
-
-The other seven **cannot** be computed from the shipped catalog, which carries only
-`id / type / name / owner / criticality`. They need contract and entitlement expiry dates, a metadata
-review date, and a secondary-owner relation — none of which are in the data. Rather than invent
-values so the numbers match, those checks are declared in `audit.UNSUPPORTED` with the field each is
-waiting on, and a test asserts none of them is silently dropped.
+Eight of the original ten audit checks are implemented. The parity tests distinguish two grades:
+the **ownership/orphan checks** genuinely re-derive the originally published findings from graph
+relationships (`feeds_without_consumers` is transitive — a one-hop check would flag every feed);
+the **lifecycle checks** (contract/entitlement expiry, stale metadata) run on synthetic
+`expires`/`last_reviewed` dates that were *authored to reproduce* the published findings — real
+code, fixture alignment by construction, and the tests say so in their docstrings. The remaining
+two checks are declared in `audit.UNSUPPORTED` with the schema each is waiting on, and a test
+asserts none is silently dropped.
 
 ## Run the demo
 
@@ -131,37 +131,34 @@ since `d3.min.js` is loaded by relative path.
 ## Layout
 
 ```
-index.html              the web app — markup, CSS, D3 code, and the embedded dataset
+index.html              the web app — markup, CSS, D3 code, and the generated embedded payload
 d3.min.js               vendored D3 v7.9.0 (BSD-3-Clause, © Mike Bostock)
 src/mdt/
   model.py              typed estate graph + traversal
   loader.py             load and validate the estate
+  router.py             Layer 1 — classify a notice (rules, evidence, confidence)
   impact.py             Layer 2 — what a notice touches
+  decision.py           Layer 3 — priority, owner routing, escalation
   audit.py              governance checks
-data/estate.json        estate extracted from the demo payload
-scripts/extract_estate.py   regenerates data/ and the test fixture from index.html
-tests/                  including parity tests against the demo's published figures
+  evaluate.py           dev vs held-out scoring
+  corpus.py             corpus loader
+corpus/                 26 real notices, labels, frozen split (see corpus/README.md)
+data/estate.json        the synthetic estate (source of truth for the demo)
+scripts/build_payload.py    runs the pipeline and regenerates index.html's payload
+scripts/extract_estate.py   historical bootstrap (the original extraction direction)
+tests/                  68 tests, incl. parity tests and a held-out leakage guard
 ```
-
-The dataset is a single `<script type="application/json">` block inside `index.html`. Everything
-else in that file is readable source — roughly 700 lines.
 
 ## Roadmap
 
-1. ~~Estate model, impact resolution, and the supportable audit checks~~ — done
-2. **Layer 1 router** — classify raw notice text into type / venue / asset class / effective date
-   with an explicit confidence, as a deterministic rules baseline so every failure is diagnosable
-3. **Notice corpus generator** — scale past 5 notices with free ground-truth labels. The risk to
-   manage: if a generator writes the notices *and* the classifier is tuned on them, the evaluation
-   only measures whether the parser can read its own templates. Mitigated by varying phrasing and
-   holding out template families the classifier never sees — and by saying so plainly.
-4. **Layer 3 decision + evaluation harness** — priority, owner routing, escalation rule, then metrics
-   on a held-out split with explicit `n`
-5. **Control Plane tab** — the operator dashboard, driven by real output instead of a fixture
-6. **Notes tab** — method and limitations, including the circularity caveat above
-
-Once step 4 lands, the schema gains the fields the seven unsupported audit checks need, and they can
-be implemented properly rather than declared.
+1. ~~Estate model, impact resolution, audit~~ — done
+2. ~~Real notice corpus with a pre-registered held-out split~~ — done (replaced the planned synthetic
+   corpus generator: real notices kill the self-authored-template circularity problem outright)
+3. ~~Router, decision layer, evaluation; Control Plane + Notes tabs~~ — done
+4. **Next:** apply the escalate-on-empty-resolution fix found by the held-out run, grow the corpus
+   (fresh notices become the new held-out), deepen the CME records, and add Euronext if a public
+   route to their notices appears
+5. The two remaining `UNSUPPORTED` audit checks, when the schema gains a secondary-owner relation
 
 ## Licence
 
