@@ -59,42 +59,48 @@
       "type": "feed",
       "name": "CME MDP 3.0 Futures",
       "criticality": "",
-      "owner": "market-data-eng"
+      "owner": "market-data-eng",
+      "last_reviewed": "2025-09-15"
     },
     {
       "id": "nasdaq_totalview",
       "type": "feed",
       "name": "Nasdaq TotalView",
       "criticality": "",
-      "owner": "market-data-eng"
+      "owner": "market-data-eng",
+      "last_reviewed": "2025-09-15"
     },
     {
       "id": "eurex_emdi",
       "type": "feed",
       "name": "Eurex EMDI",
       "criticality": "",
-      "owner": "market-data-eng"
+      "owner": "market-data-eng",
+      "last_reviewed": "2025-05-01"
     },
     {
       "id": "bloomberg_refdata",
       "type": "feed",
       "name": "Bloomberg Reference Data",
       "criticality": "",
-      "owner": "reference-data-ops"
+      "owner": "reference-data-ops",
+      "last_reviewed": "2025-10-01"
     },
     {
       "id": "ice_commodities",
       "type": "feed",
       "name": "ICE Commodities Feed",
       "criticality": "",
-      "owner": ""
+      "owner": "",
+      "last_reviewed": "2025-08-20"
     },
     {
       "id": "lse_sets",
       "type": "feed",
       "name": "LSE SETS",
       "criticality": "",
-      "owner": "market-data-eng"
+      "owner": "market-data-eng",
+      "last_reviewed": "2025-09-01"
     },
     {
       "id": "futures_quotes",
@@ -276,63 +282,72 @@
       "type": "contract",
       "name": "CME Redistribution License",
       "criticality": "",
-      "owner": ""
+      "owner": "",
+      "expires": "2025-11-15"
     },
     {
       "id": "nasdaq_license",
       "type": "contract",
       "name": "Nasdaq Data License",
       "criticality": "",
-      "owner": ""
+      "owner": "",
+      "expires": "2026-09-30"
     },
     {
       "id": "bloomberg_agreement",
       "type": "contract",
       "name": "Bloomberg Data Agreement",
       "criticality": "",
-      "owner": ""
+      "owner": "",
+      "expires": "2025-11-10"
     },
     {
       "id": "eurex_license",
       "type": "contract",
       "name": "Eurex Data License",
       "criticality": "",
-      "owner": ""
+      "owner": "",
+      "expires": "2025-08-01"
     },
     {
       "id": "cme_futures_entitlement",
       "type": "entitlement",
       "name": "cme_futures_entitlement",
       "criticality": "",
-      "owner": ""
+      "owner": "",
+      "expires": "2026-06-30"
     },
     {
       "id": "nasdaq_nondisplay_entitlement",
       "type": "entitlement",
       "name": "nasdaq_nondisplay_entitlement",
       "criticality": "",
-      "owner": ""
+      "owner": "",
+      "expires": "2026-08-31"
     },
     {
       "id": "bloomberg_refdata_entitlement",
       "type": "entitlement",
       "name": "bloomberg_refdata_entitlement",
       "criticality": "",
-      "owner": ""
+      "owner": "",
+      "expires": "2025-11-05"
     },
     {
       "id": "corporate_actions_entitlement",
       "type": "entitlement",
       "name": "corporate_actions_entitlement",
       "criticality": "",
-      "owner": ""
+      "owner": "",
+      "expires": "2026-05-31"
     },
     {
       "id": "utp_sip",
       "type": "feed",
       "name": "UTP SIP (UQDF/UTDF)",
       "criticality": "high",
-      "owner": "market-data-eng"
+      "owner": "market-data-eng",
+      "last_reviewed": "2026-07-28"
     },
     {
       "id": "consolidated_tape",

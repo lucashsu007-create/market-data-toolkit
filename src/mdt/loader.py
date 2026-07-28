@@ -25,6 +25,8 @@ def load_estate(path: Path | str = DEFAULT_ESTATE) -> Estate:
             name=raw.get("name", ""),
             owner=raw.get("owner", "") or "",
             criticality=raw.get("criticality", "") or "",
+            expires=raw.get("expires", "") or "",
+            last_reviewed=raw.get("last_reviewed", "") or "",
         )
 
     edges: list[Edge] = []

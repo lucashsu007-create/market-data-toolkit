@@ -42,6 +42,10 @@ class Node:
     name: str
     owner: str = ""
     criticality: str = ""
+    # ISO dates; empty string = not recorded. `expires` is meaningful on
+    # contracts and entitlements, `last_reviewed` on any catalogued node.
+    expires: str = ""
+    last_reviewed: str = ""
 
     @property
     def has_owner(self) -> bool:
