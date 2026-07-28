@@ -10,3 +10,7 @@ __pycache__/
 venv/
 # logs
 *.log
+.coverage
+htmlcov/
+.pytest_cache/
+*.egg-info/

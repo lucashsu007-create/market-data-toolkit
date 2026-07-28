@@ -1,0 +1,747 @@
+{
+  "meta": {
+    "source": "index.html embedded payload",
+    "version": "0.5.0-site",
+    "synthetic": true
+  },
+  "nodes": [
+    {
+      "id": "cme",
+      "type": "venue",
+      "name": "CME Group",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "nasdaq",
+      "type": "venue",
+      "name": "Nasdaq",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "eurex",
+      "type": "venue",
+      "name": "Eurex",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "ice",
+      "type": "venue",
+      "name": "Intercontinental Exchange",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "lse",
+      "type": "venue",
+      "name": "London Stock Exchange",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "bloomberg",
+      "type": "vendor",
+      "name": "Bloomberg",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "refinitiv",
+      "type": "vendor",
+      "name": "Refinitiv",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "cme_mdp3_futures",
+      "type": "feed",
+      "name": "CME MDP 3.0 Futures",
+      "criticality": "",
+      "owner": "market-data-eng"
+    },
+    {
+      "id": "nasdaq_totalview",
+      "type": "feed",
+      "name": "Nasdaq TotalView",
+      "criticality": "",
+      "owner": "market-data-eng"
+    },
+    {
+      "id": "eurex_emdi",
+      "type": "feed",
+      "name": "Eurex EMDI",
+      "criticality": "",
+      "owner": "market-data-eng"
+    },
+    {
+      "id": "bloomberg_refdata",
+      "type": "feed",
+      "name": "Bloomberg Reference Data",
+      "criticality": "",
+      "owner": "reference-data-ops"
+    },
+    {
+      "id": "ice_commodities",
+      "type": "feed",
+      "name": "ICE Commodities Feed",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "lse_sets",
+      "type": "feed",
+      "name": "LSE SETS",
+      "criticality": "",
+      "owner": "market-data-eng"
+    },
+    {
+      "id": "futures_quotes",
+      "type": "dataset",
+      "name": "Futures Quotes",
+      "criticality": "",
+      "owner": "market-data-eng"
+    },
+    {
+      "id": "futures_reference_data",
+      "type": "dataset",
+      "name": "Futures Reference Data",
+      "criticality": "",
+      "owner": "reference-data-ops"
+    },
+    {
+      "id": "futures_settlement_prices",
+      "type": "dataset",
+      "name": "Futures Settlement Prices",
+      "criticality": "",
+      "owner": "reference-data-ops"
+    },
+    {
+      "id": "equities_quotes",
+      "type": "dataset",
+      "name": "Equities Quotes (L2)",
+      "criticality": "",
+      "owner": "market-data-eng"
+    },
+    {
+      "id": "equities_reference_data",
+      "type": "dataset",
+      "name": "Equities Reference Data",
+      "criticality": "",
+      "owner": "reference-data-ops"
+    },
+    {
+      "id": "corporate_actions",
+      "type": "dataset",
+      "name": "Corporate Actions",
+      "criticality": "",
+      "owner": "reference-data-ops"
+    },
+    {
+      "id": "commodities_quotes",
+      "type": "dataset",
+      "name": "Commodities Quotes",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "lse_equities_quotes",
+      "type": "dataset",
+      "name": "LSE Equities Quotes",
+      "criticality": "",
+      "owner": "market-data-eng"
+    },
+    {
+      "id": "futures_pricer",
+      "type": "system",
+      "name": "Futures Pricer",
+      "criticality": "medium",
+      "owner": "futures-desk-ops"
+    },
+    {
+      "id": "risk_snapshotter",
+      "type": "system",
+      "name": "Risk Snapshotter",
+      "criticality": "medium",
+      "owner": "market-data-eng"
+    },
+    {
+      "id": "backtest_loader",
+      "type": "system",
+      "name": "Backtest Loader",
+      "criticality": "medium",
+      "owner": "market-data-eng"
+    },
+    {
+      "id": "pnl_reconciler",
+      "type": "system",
+      "name": "PnL Reconciler",
+      "criticality": "medium",
+      "owner": "futures-desk-ops"
+    },
+    {
+      "id": "equities_parser",
+      "type": "system",
+      "name": "Equities Parser",
+      "criticality": "high",
+      "owner": "market-data-eng"
+    },
+    {
+      "id": "market_data_validator",
+      "type": "system",
+      "name": "Market Data Validator",
+      "criticality": "high",
+      "owner": "market-data-eng"
+    },
+    {
+      "id": "equities_pricer",
+      "type": "system",
+      "name": "Equities Pricer",
+      "criticality": "high",
+      "owner": "equity-desk-ops"
+    },
+    {
+      "id": "entitlement_service",
+      "type": "system",
+      "name": "Entitlement Service",
+      "criticality": "high",
+      "owner": "market-data-eng"
+    },
+    {
+      "id": "lse_pricer",
+      "type": "system",
+      "name": "LSE Equities Pricer",
+      "criticality": "medium",
+      "owner": "market-data-eng"
+    },
+    {
+      "id": "futures_trading",
+      "type": "desk",
+      "name": "Futures Trading",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "risk",
+      "type": "desk",
+      "name": "Risk",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "equity_trading",
+      "type": "desk",
+      "name": "Equity Trading",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "market-data-eng",
+      "type": "owner",
+      "name": "Market Data Engineering",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "futures-desk-ops",
+      "type": "owner",
+      "name": "Futures Desk Ops",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "reference-data-ops",
+      "type": "owner",
+      "name": "Reference Data Ops",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "equity-desk-ops",
+      "type": "owner",
+      "name": "Equity Desk Ops",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "vendor-management",
+      "type": "owner",
+      "name": "Vendor Management",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "cme_redistribution_license",
+      "type": "contract",
+      "name": "CME Redistribution License",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "nasdaq_license",
+      "type": "contract",
+      "name": "Nasdaq Data License",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "bloomberg_agreement",
+      "type": "contract",
+      "name": "Bloomberg Data Agreement",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "eurex_license",
+      "type": "contract",
+      "name": "Eurex Data License",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "cme_futures_entitlement",
+      "type": "entitlement",
+      "name": "cme_futures_entitlement",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "nasdaq_nondisplay_entitlement",
+      "type": "entitlement",
+      "name": "nasdaq_nondisplay_entitlement",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "bloomberg_refdata_entitlement",
+      "type": "entitlement",
+      "name": "bloomberg_refdata_entitlement",
+      "criticality": "",
+      "owner": ""
+    },
+    {
+      "id": "corporate_actions_entitlement",
+      "type": "entitlement",
+      "name": "corporate_actions_entitlement",
+      "criticality": "",
+      "owner": ""
+    }
+  ],
+  "links": [
+    {
+      "source": "cme_mdp3_futures",
+      "target": "cme",
+      "edge_type": "published_by",
+      "kind": "governance"
+    },
+    {
+      "source": "cme_mdp3_futures",
+      "target": "market-data-eng",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "cme_mdp3_futures",
+      "target": "futures_quotes",
+      "edge_type": "provides",
+      "kind": "flow"
+    },
+    {
+      "source": "cme_mdp3_futures",
+      "target": "futures_reference_data",
+      "edge_type": "provides",
+      "kind": "flow"
+    },
+    {
+      "source": "cme_mdp3_futures",
+      "target": "futures_settlement_prices",
+      "edge_type": "provides",
+      "kind": "flow"
+    },
+    {
+      "source": "cme_mdp3_futures",
+      "target": "cme_futures_entitlement",
+      "edge_type": "requires_entitlement",
+      "kind": "governance"
+    },
+    {
+      "source": "cme_mdp3_futures",
+      "target": "cme_redistribution_license",
+      "edge_type": "covered_by_contract",
+      "kind": "governance"
+    },
+    {
+      "source": "nasdaq_totalview",
+      "target": "nasdaq",
+      "edge_type": "published_by",
+      "kind": "governance"
+    },
+    {
+      "source": "nasdaq_totalview",
+      "target": "market-data-eng",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "nasdaq_totalview",
+      "target": "equities_quotes",
+      "edge_type": "provides",
+      "kind": "flow"
+    },
+    {
+      "source": "nasdaq_totalview",
+      "target": "equities_reference_data",
+      "edge_type": "provides",
+      "kind": "flow"
+    },
+    {
+      "source": "nasdaq_totalview",
+      "target": "nasdaq_nondisplay_entitlement",
+      "edge_type": "requires_entitlement",
+      "kind": "governance"
+    },
+    {
+      "source": "nasdaq_totalview",
+      "target": "nasdaq_license",
+      "edge_type": "covered_by_contract",
+      "kind": "governance"
+    },
+    {
+      "source": "eurex_emdi",
+      "target": "eurex",
+      "edge_type": "published_by",
+      "kind": "governance"
+    },
+    {
+      "source": "eurex_emdi",
+      "target": "market-data-eng",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "eurex_emdi",
+      "target": "eurex_license",
+      "edge_type": "covered_by_contract",
+      "kind": "governance"
+    },
+    {
+      "source": "bloomberg_refdata",
+      "target": "bloomberg",
+      "edge_type": "published_by",
+      "kind": "governance"
+    },
+    {
+      "source": "bloomberg_refdata",
+      "target": "reference-data-ops",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "bloomberg_refdata",
+      "target": "corporate_actions",
+      "edge_type": "provides",
+      "kind": "flow"
+    },
+    {
+      "source": "bloomberg_refdata",
+      "target": "bloomberg_refdata_entitlement",
+      "edge_type": "requires_entitlement",
+      "kind": "governance"
+    },
+    {
+      "source": "bloomberg_refdata",
+      "target": "bloomberg_agreement",
+      "edge_type": "covered_by_contract",
+      "kind": "governance"
+    },
+    {
+      "source": "ice_commodities",
+      "target": "ice",
+      "edge_type": "published_by",
+      "kind": "governance"
+    },
+    {
+      "source": "ice_commodities",
+      "target": "commodities_quotes",
+      "edge_type": "provides",
+      "kind": "flow"
+    },
+    {
+      "source": "lse_sets",
+      "target": "lse",
+      "edge_type": "published_by",
+      "kind": "governance"
+    },
+    {
+      "source": "lse_sets",
+      "target": "market-data-eng",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "lse_sets",
+      "target": "lse_equities_quotes",
+      "edge_type": "provides",
+      "kind": "flow"
+    },
+    {
+      "source": "futures_quotes",
+      "target": "market-data-eng",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "futures_quotes",
+      "target": "futures_pricer",
+      "edge_type": "consumed_by",
+      "kind": "flow"
+    },
+    {
+      "source": "futures_quotes",
+      "target": "risk_snapshotter",
+      "edge_type": "consumed_by",
+      "kind": "flow"
+    },
+    {
+      "source": "futures_reference_data",
+      "target": "reference-data-ops",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "futures_reference_data",
+      "target": "futures_pricer",
+      "edge_type": "consumed_by",
+      "kind": "flow"
+    },
+    {
+      "source": "futures_reference_data",
+      "target": "backtest_loader",
+      "edge_type": "consumed_by",
+      "kind": "flow"
+    },
+    {
+      "source": "futures_reference_data",
+      "target": "pnl_reconciler",
+      "edge_type": "consumed_by",
+      "kind": "flow"
+    },
+    {
+      "source": "futures_settlement_prices",
+      "target": "reference-data-ops",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "futures_settlement_prices",
+      "target": "risk_snapshotter",
+      "edge_type": "consumed_by",
+      "kind": "flow"
+    },
+    {
+      "source": "futures_settlement_prices",
+      "target": "pnl_reconciler",
+      "edge_type": "consumed_by",
+      "kind": "flow"
+    },
+    {
+      "source": "equities_quotes",
+      "target": "market-data-eng",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "equities_quotes",
+      "target": "equities_parser",
+      "edge_type": "consumed_by",
+      "kind": "flow"
+    },
+    {
+      "source": "equities_quotes",
+      "target": "equities_pricer",
+      "edge_type": "consumed_by",
+      "kind": "flow"
+    },
+    {
+      "source": "equities_reference_data",
+      "target": "reference-data-ops",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "equities_reference_data",
+      "target": "equities_parser",
+      "edge_type": "consumed_by",
+      "kind": "flow"
+    },
+    {
+      "source": "equities_reference_data",
+      "target": "market_data_validator",
+      "edge_type": "consumed_by",
+      "kind": "flow"
+    },
+    {
+      "source": "equities_reference_data",
+      "target": "backtest_loader",
+      "edge_type": "consumed_by",
+      "kind": "flow"
+    },
+    {
+      "source": "equities_reference_data",
+      "target": "corporate_actions",
+      "edge_type": "derived_from",
+      "kind": "flow"
+    },
+    {
+      "source": "corporate_actions",
+      "target": "reference-data-ops",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "corporate_actions",
+      "target": "corporate_actions_entitlement",
+      "edge_type": "requires_entitlement",
+      "kind": "governance"
+    },
+    {
+      "source": "corporate_actions",
+      "target": "market_data_validator",
+      "edge_type": "consumed_by",
+      "kind": "flow"
+    },
+    {
+      "source": "corporate_actions",
+      "target": "equities_pricer",
+      "edge_type": "consumed_by",
+      "kind": "flow"
+    },
+    {
+      "source": "commodities_quotes",
+      "target": "risk_snapshotter",
+      "edge_type": "consumed_by",
+      "kind": "flow"
+    },
+    {
+      "source": "lse_equities_quotes",
+      "target": "market-data-eng",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "lse_equities_quotes",
+      "target": "lse_pricer",
+      "edge_type": "consumed_by",
+      "kind": "flow"
+    },
+    {
+      "source": "futures_pricer",
+      "target": "futures-desk-ops",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "futures_pricer",
+      "target": "futures_trading",
+      "edge_type": "supports",
+      "kind": "flow"
+    },
+    {
+      "source": "risk_snapshotter",
+      "target": "market-data-eng",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "risk_snapshotter",
+      "target": "risk",
+      "edge_type": "supports",
+      "kind": "flow"
+    },
+    {
+      "source": "backtest_loader",
+      "target": "market-data-eng",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "backtest_loader",
+      "target": "futures_trading",
+      "edge_type": "supports",
+      "kind": "flow"
+    },
+    {
+      "source": "pnl_reconciler",
+      "target": "futures-desk-ops",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "pnl_reconciler",
+      "target": "risk",
+      "edge_type": "supports",
+      "kind": "flow"
+    },
+    {
+      "source": "equities_parser",
+      "target": "market-data-eng",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "equities_parser",
+      "target": "equity_trading",
+      "edge_type": "supports",
+      "kind": "flow"
+    },
+    {
+      "source": "market_data_validator",
+      "target": "market-data-eng",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "market_data_validator",
+      "target": "risk",
+      "edge_type": "supports",
+      "kind": "flow"
+    },
+    {
+      "source": "equities_pricer",
+      "target": "equity-desk-ops",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "equities_pricer",
+      "target": "equity_trading",
+      "edge_type": "supports",
+      "kind": "flow"
+    },
+    {
+      "source": "entitlement_service",
+      "target": "market-data-eng",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "entitlement_service",
+      "target": "equities_reference_data",
+      "edge_type": "depends_on",
+      "kind": "flow"
+    },
+    {
+      "source": "lse_pricer",
+      "target": "market-data-eng",
+      "edge_type": "owned_by",
+      "kind": "governance"
+    },
+    {
+      "source": "lse_pricer",
+      "target": "equity_trading",
+      "edge_type": "supports",
+      "kind": "flow"
+    }
+  ]
+}

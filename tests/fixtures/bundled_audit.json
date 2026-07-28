@@ -1,0 +1,35 @@
+{
+  "config": {
+    "today": "2025-10-20",
+    "contract_expiry_days": 30,
+    "stale_days": 90
+  },
+  "feeds_without_owner": [
+    "ice_commodities"
+  ],
+  "datasets_without_owner": [
+    "commodities_quotes"
+  ],
+  "systems_missing_secondary_owner": [
+    "backtest_loader",
+    "equities_parser"
+  ],
+  "contracts_expiring": [
+    "bloomberg_agreement",
+    "cme_redistribution_license"
+  ],
+  "expired_contracts": [
+    "eurex_license"
+  ],
+  "entitlements_expiring": [
+    "bloomberg_refdata_entitlement"
+  ],
+  "expired_entitlements": [],
+  "feeds_without_consumers": [
+    "eurex_emdi"
+  ],
+  "stale_metadata": [
+    "eurex_emdi"
+  ],
+  "structural_issues": []
+}

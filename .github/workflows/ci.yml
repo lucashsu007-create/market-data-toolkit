@@ -1,0 +1,27 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[dev]"
+      - name: Tests
+        run: pytest --cov=mdt --cov-report=term-missing
+
+      # The extraction script must stay in sync with the demo payload: if
+      # index.html changes, data/estate.json has to be regenerated or the
+      # parity tests are asserting against stale input.
+      - name: Extracted data is up to date
+        run: |
+          python scripts/extract_estate.py
+          git diff --exit-code data/ tests/fixtures/ \
+            || { echo "::error::run scripts/extract_estate.py and commit the result"; exit 1; }
