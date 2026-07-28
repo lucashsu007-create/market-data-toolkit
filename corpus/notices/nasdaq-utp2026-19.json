@@ -5,7 +5,7 @@
   "published": "2026-06-26",
   "notice_no": "UTP2026-19",
   "title": "UPDATE: 2026 Failover and Market Wide Circuit Breaker Testing Schedule",
-  "summary": "Updated 2026 test calendar: data-center failover and MWCB tests on 2026-07-25, 2026-09-12 and 2026-12-12 (rescheduled final test); failover times unannounced to simulate real incidents.",
+  "summary": "Updated 2026 test calendar for UTP Data Services (UQDF/UTDF): data-center failover and MWCB tests on 2026-07-25, 2026-09-12 and 2026-12-12 (rescheduled final test); failover times unannounced to simulate real incidents. UTP participants and all data subscribers affected.",
   "quote": "Specific failover times will be unannounced in order to simulate unexpected real-time occurrences.",
   "effective": "2026-07-25",
   "depth": "full"
