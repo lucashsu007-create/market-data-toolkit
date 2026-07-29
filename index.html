@@ -114,8 +114,38 @@ html, body { margin: 0; }
 
 
 /* ---- control plane ---- */
+/* `min-width: 0` on the children is load-bearing: a grid item defaults to
+   `min-width: auto`, so the wide review-queue table stretched its card past the
+   viewport and defeated the table's own `overflow-x: auto`. On a phone the card
+   was 518px inside a 390px screen. */
 .cp-grid { display: grid; gap: 14px; height: 100%; grid-auto-rows: max-content; overflow-y: auto; min-height: 0; padding-right: 3px; }
+.cp-grid > * { min-width: 0; }
 .cp-note { font-size: 12px; color: var(--muted); margin-top: 6px; }
+/* Evaluation tiles. The number is the headline, the track shows it against the
+   split the rules were tuned on, and the note states the gap in words — status
+   is never carried by colour alone. Text keeps text tokens; the coloured mark
+   sits beside it rather than tinting the value. */
+.ev-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(178px, 1fr)); gap: 10px; margin-bottom: 4px; }
+.ev-tile { background: var(--panel); border: 1px solid var(--line); border-radius: 11px; padding: 13px 15px 14px; display: flex; flex-direction: column; gap: 7px; }
+.ev-label { font-size: 11px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); font-family: var(--mono); }
+.ev-value { font-size: 27px; line-height: 1; font-family: var(--mono); letter-spacing: -.02em; color: #f0f3fa; }
+.ev-track { position: relative; display: block; height: 6px; border-radius: 3px; background: #1e2330; overflow: visible; }
+.ev-fill { display: block; height: 100%; border-radius: 3px; background: #5b6472; }
+/* The dev value as a notch on the same scale, so the comparison is positional
+   rather than something the reader has to hold in their head. */
+.ev-ref { position: absolute; top: -3px; width: 2px; height: 12px; border-radius: 1px; background: #aab0bb; transform: translateX(-1px); }
+.ev-note { font-size: 11.5px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+.ev-note::before { content: ""; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--muted); }
+.ev-tile.good .ev-fill { background: var(--up); }
+.ev-tile.good .ev-note::before { background: var(--up); }
+.ev-tile.warn .ev-fill { background: #ffb84d; }
+.ev-tile.warn .ev-note::before { background: #ffb84d; }
+.ev-tile.warn .ev-note { color: #ffc78a; }
+.ev-tile.serious .ev-fill { background: var(--down); }
+.ev-tile.serious .ev-note::before { background: var(--down); }
+.ev-tile.serious .ev-note { color: #ff8f8c; }
+.ev-tile.ev-count { justify-content: flex-start; }
+
 .qtable { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .qtable th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 6px 8px; border-bottom: 1px solid var(--line); }
 .qtable td { padding: 7px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -1456,8 +1486,30 @@ window.MDTLive = (function () {
 
   // ---- control plane ----
   function pct(x) { return x === null || x === undefined ? "—" : (Math.round(x * 100) + "%"); }
-  function evalStat(v, label, bad) {
-    return '<div class="ov-stat' + (bad ? "" : " good") + '"><b>' + v + "</b><span>" + label + "</span></div>";
+  /* A metric tile carrying both splits. Status is never colour alone: a tile
+     that is off also spells out the delta ("-52 pts vs dev"), so the state
+     survives greyscale, colour blindness and a printout. */
+  function evalStat(label, heldOut, dev) {
+    var gap = Math.round((heldOut - dev) * 100);
+    var state = gap <= -20 ? "serious" : gap < 0 ? "warn" : "good";
+    var note = gap < 0 ? gap + " pts vs dev" : "matches dev";
+    return '<div class="ev-tile ' + state + '">'
+      + '<span class="ev-label">' + esc(label) + '</span>'
+      + '<b class="ev-value">' + pct(heldOut) + '</b>'
+      + '<span class="ev-track"><span class="ev-fill" style="width:' + Math.round(heldOut * 100) + '%"></span>'
+      + '<span class="ev-ref" style="left:' + Math.round(dev * 100) + '%"></span></span>'
+      + '<span class="ev-note">' + esc(note) + '</span></div>';
+  }
+
+  /* Counts have no percentage to plot, so this drops the track rather than
+     inventing a scale for a number that is 0 or 1. */
+  function evalCount(label, heldOut, dev, badState) {
+    var state = heldOut > 0 ? badState : "good";
+    var note = heldOut > 0 ? "dev had " + dev : "none on either split";
+    return '<div class="ev-tile ' + state + ' ev-count">'
+      + '<span class="ev-label">' + esc(label) + '</span>'
+      + '<b class="ev-value">' + heldOut + '</b>'
+      + '<span class="ev-note">' + esc(note) + '</span></div>';
   }
   function failureText(row) {
     var want = row.label, out = [];
@@ -1477,14 +1529,19 @@ window.MDTLive = (function () {
     var q = DATA.queue;
     var html = '<div class="cp-grid">';
 
-    html += '<div class="card"><p class="section-label">Held-out evaluation · n=' + ho.n + ' real notices · split frozen before any rule was written</p><div class="ov-stats">'
-      + evalStat(pct(ho.venue_accuracy), "venue accuracy", ho.venue_accuracy < 1)
-      + evalStat(pct(ho.type_accuracy), "type accuracy", ho.type_accuracy < 1)
-      + evalStat(pct(ho.feed_recall), "feed recall", ho.feed_recall < 1)
-      + evalStat(pct(ho.priority_accuracy), "priority accuracy", ho.priority_accuracy < 1)
-      + evalStat(ho.false_clears, "false clears", ho.false_clears > 0)
-      + evalStat(ho.unnecessary_reviews, "unnecessary reviews", ho.unnecessary_reviews > 0)
-      + '</div><p class="cp-note">Dev split (rules tuned here, n=' + dv.n + '): venue ' + pct(dv.venue_accuracy) + ' · type ' + pct(dv.type_accuracy) + ' · feed recall ' + pct(dv.feed_recall) + ' · priority ' + pct(dv.priority_accuracy) + ' · false clears ' + dv.false_clears + '. Held-out numbers are reported as scored once — not tuned.</p></div>';
+    // The gap between the split the rules were tuned on and the split they were
+    // not is the whole result, and it used to sit in a prose line under the
+    // tiles. Each metric now carries both, with the dev value notched onto the
+    // same track, so "95% becomes 43%" is something you see rather than parse.
+    html += '<div class="card"><p class="section-label">Held-out evaluation · n=' + ho.n + ' real notices · split frozen before any rule was written</p>'
+      + '<div class="ev-grid">'
+      + evalStat("venue", ho.venue_accuracy, dv.venue_accuracy)
+      + evalStat("type", ho.type_accuracy, dv.type_accuracy)
+      + evalStat("feed recall", ho.feed_recall, dv.feed_recall)
+      + evalStat("priority", ho.priority_accuracy, dv.priority_accuracy)
+      + evalCount("false clears", ho.false_clears, dv.false_clears, "serious")
+      + evalCount("unnecessary reviews", ho.unnecessary_reviews, dv.unnecessary_reviews, "warn")
+      + '</div><p class="cp-note">The bar is the held-out score; the notch is the same metric on the dev split (n=' + dv.n + '), where the rules were tuned. Held-out was scored once and is reported as it came out.</p></div>';
 
     html += '<div class="card"><p class="section-label">Failure gallery · held-out misses, shown deliberately</p>';
     if (!fails.length) html += '<div class="risk none">No held-out failures.</div>';
