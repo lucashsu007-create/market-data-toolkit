@@ -18,10 +18,23 @@
   background: var(--bg); color: var(--ink);
   font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Trebuchet MS", "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
-  height: 100vh; display: flex; flex-direction: column;
+  /* dvh so mobile browser chrome does not push the shell off-screen; the vh
+     line is the fallback for anything that does not know dvh. */
+  height: 100vh;
+  height: 100dvh;
+  display: flex; flex-direction: column;
   padding: 16px 18px 12px; max-width: 1320px; margin: 0 auto;
 }
-.mdig *, .mdig *::before, .mdig *::after { box-sizing: border-box; }
+/* `.mdig` itself, not just its descendants. Without it the shell stays
+   content-box, so `height: 100dvh` means 100dvh *plus* 28px of padding — the
+   shell overshoots the viewport by a constant and the page scrolls when it
+   should fit exactly. */
+.mdig, .mdig *, .mdig *::before, .mdig *::after { box-sizing: border-box; }
+/* This file is a complete document, so zeroing the page box is ours to do.
+   Everything else stays scoped under .mdig so the component can still be
+   dropped into another page. Default body margin would otherwise add 8px to
+   a shell that is already exactly viewport-height. */
+html, body { margin: 0; }
 
 /* ---- header ---- */
 .mdig-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; flex: none; }
