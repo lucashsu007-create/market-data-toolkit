@@ -23,7 +23,13 @@
   height: 100vh;
   height: 100dvh;
   display: flex; flex-direction: column;
-  padding: 16px 18px 12px; max-width: 1320px; margin: 0 auto;
+  /* No max-width. A 1320px cap left ~300px empty on each side of a 1920 screen
+     and ~620px on a 2560 — the shell read as a stranded column rather than an
+     application. Line length is protected where it actually matters (the hero
+     paragraph and stage copy carry their own ch-based caps), so the frame is
+     free to fill the display. Side padding scales instead, so the content
+     never touches the edge on a large monitor. */
+  padding: 16px clamp(18px, 2.4vw, 64px) 12px;
 }
 /* `.mdig` itself, not just its descendants. Without it the shell stays
    content-box, so `height: 100dvh` means 100dvh *plus* 28px of padding — the
@@ -82,6 +88,9 @@ html, body { margin: 0; }
    of a stretched card — roughly 250px of void inside each one. Rows size to
    content now and the grid packs to the top; the container still scrolls when
    the content genuinely exceeds the viewport. */
+/* Packed to the top, not centred. Centring balances the block against the
+   viewport but detaches it from the tab bar above — a ~200px gap under the
+   nav reads far worse than trailing space under the last row. */
 .ov-grid { display: grid; gap: 18px; height: 100%; align-content: start; min-height: 0; overflow-y: auto; }
 /* The break balances the headline into two even lines on a wide screen and
    orphans one on a phone, where the text wraps on its own anyway. */
