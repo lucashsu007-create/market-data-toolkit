@@ -250,10 +250,16 @@ html, body { margin: 0; }
 /* ---- pipeline (walkthrough) ---- */
 .pipe { display: flex; flex-direction: column; height: 100%; min-height: 0; gap: 12px; }
 .pipe-top { flex: none; }
-.pipe-scn { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
-.pipe-scn button { border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); padding: 6px 12px; border-radius: 999px; cursor: pointer; font-size: 12.5px; }
-.pipe-scn button:hover { background: #1b2130; }
-.pipe-scn button.active { background: var(--blue); border-color: var(--blue); color: #fff; }
+/* Scenario picker: small cards rather than pills. A pill forces one line, and
+   one line forces truncation on titles that only differ near the end. */
+.pipe-scn { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; margin-bottom: 16px; }
+.pipe-scn button { border: 1px solid var(--line); background: var(--panel-2); color: var(--ink); padding: 10px 13px; border-radius: 11px; cursor: pointer; font-size: 13px; text-align: left; display: flex; flex-direction: column; gap: 4px; transition: border-color .14s ease, background .14s ease; }
+.pipe-scn button:hover { background: #1b2130; border-color: #3d434f; }
+.pipe-scn button.active { background: rgba(41,98,255,.14); border-color: var(--blue); }
+.pipe-scn .scn-tag { font-family: var(--mono); font-size: 10px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.pipe-scn button.active .scn-tag { color: #8fabff; }
+.pipe-scn .scn-name { font-size: 12.5px; line-height: 1.35; color: var(--ink); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.pipe-scn button.active .scn-name { color: #fff; }
 .pipe-steps { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; }
 .pipe-step button { border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); padding: 7px 12px; border-radius: 8px; cursor: pointer; font-size: 12.5px; display: inline-flex; gap: 7px; align-items: center; }
 .pipe-step button .n { width: 18px; height: 18px; border-radius: 50%; background: var(--line); color: var(--ink); font-size: 11px; font-family: var(--mono); display: inline-flex; align-items: center; justify-content: center; }
@@ -262,6 +268,15 @@ html, body { margin: 0; }
 .pipe-step button.done { color: var(--ink); }
 .pipe-arrow { color: var(--muted); margin: 0 7px; }
 .pipe-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+/* Stage opener. The question carries the weight and the technical label is
+   demoted to an eyebrow, so the four steps read as plain English first. The
+   answer is capped near 62ch because prose past that stops being scannable
+   however much room the screen has. */
+.stage-head { margin: 0 0 20px; }
+.stage-eyebrow { margin: 0 0 7px; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); font-family: var(--mono); }
+.stage-q { margin: 0; font-size: clamp(19px, 2.1vw, 27px); line-height: 1.18; letter-spacing: -.02em; color: #f5f7fb; font-weight: 600; }
+.stage-a { margin: 9px 0 0; max-width: 62ch; font-size: 14.5px; line-height: 1.6; color: #a9b0be; }
+.stage-a b { color: var(--ink); font-weight: 600; }
 .pipe-raw { background: #0e1118; border: 1px solid var(--line); border-radius: 8px; padding: 12px; font-family: var(--mono); font-size: 12px; color: #aab0bb; white-space: pre-wrap; margin: 0; }
 .pipe-hint { color: var(--muted); font-size: 12px; margin: 12px 0 0; }
 .pipe-edit { display: block; width: 100%; box-sizing: border-box; resize: vertical; min-height: 150px; color: #d5dae3; line-height: 1.55; }
@@ -1119,9 +1134,19 @@ window.MDTLive = (function () {
       '<div class="pipe-nav"><button class="btn" data-ref="pprev">\u2190 Back</button><button class="btn primary" data-ref="pnext">Next \u2192</button></div></div>';
     viewEl.innerHTML = html;
     var pscn = viewEl.querySelector('[data-ref="pscn"]');
+    var byId = {};
+    DATA.queue.forEach(function (q) { byId[q.id] = q; });
     DATA.scenarios.forEach(function (s, i) {
+      var q = byId[s.id] || {};
       var b = document.createElement("button");
-      b.textContent = s.label; b.setAttribute("data-i", i);
+      // Venue and type as an eyebrow, then the notice itself. Two of these five
+      // share a venue and a type, so the headline is what tells them apart —
+      // and `label` is pre-truncated at 60 chars, which cuts mid-word, so use
+      // the full title and let CSS clamp it on a word boundary instead.
+      b.innerHTML = '<span class="scn-tag">' + esc((q.venue || "") + " · "
+          + String(s.notice_type).replace(/_/g, " ")) + '</span>'
+        + '<span class="scn-name">' + esc(scnHeadline(q.title || s.label)) + '</span>';
+      b.setAttribute("data-i", i);
       // Picking a scenario reseeds the editor, so any typed text is dropped.
       b.addEventListener("click", function () {
         pipe.scn = i; pipe.stage = 0; setLiveText(null); updatePipe();
@@ -1230,11 +1255,38 @@ window.MDTLive = (function () {
       + "ungraded. " + liveText().length + " / " + MAX_LIVE_CHARS + " characters.";
   }
 
+  /* Every stage opens with the question it answers, in plain words, before any
+     jargon. Someone who has never heard of a market-data feed should be able to
+     follow the four steps; the technical labelling is demoted to an eyebrow
+     rather than removed, because the audience is both a recruiter and the desk
+     they are recruiting for. */
+  /* Exchanges prefix almost every notice with the same boilerplate ("Nasdaq
+     Announces", "CME Globex Notice:", "UPDATE:"). Five chips all starting the
+     same way are unscannable, and the distinguishing words are exactly the ones
+     that get pushed off the end. */
+  function scnHeadline(title) {
+    return String(title)
+      .replace(/^(UPDATE|REMINDER|CORRECTION)\s*:\s*/i, "")
+      .replace(/^CME\s+Globex\s+Notice\s*:\s*/i, "")
+      .replace(/^Nasdaq\s+Announces\s+/i, "")
+      .replace(/\s*[…]+\s*$/, "")
+      .trim();
+  }
+
+  function stageHead(n, question, answer, technical) {
+    return '<div class="stage-head">' +
+      '<p class="stage-eyebrow">Step ' + n + ' of 4 &middot; ' + esc(technical) + '</p>' +
+      '<h3 class="stage-q">' + esc(question) + '</h3>' +
+      '<p class="stage-a">' + answer + '</p></div>';
+  }
+
   function stageRaw(scn) {
     var base = baseScenario();
-    return '<div class="card"><p class="section-label">Stage 1 \u00b7 Raw inbound notice</p>' +
-      '<p class="pipe-hint" style="margin:0 0 10px">This is exactly what the router reads \u2014 the notice title and summary, nothing else. ' +
-      'Edit it, or paste a notice of your own, and stages 2\u20134 reclassify as you type.</p>' +
+    return '<div class="card">' +
+      stageHead(1, "A notice arrives.",
+        "Exchanges and vendors send these constantly. This is the raw text, and nothing else \u2014 " +
+        "<b>edit it or paste your own, and the next three steps reclassify as you type.</b>",
+        "Raw inbound notice") +
       '<textarea class="pipe-raw pipe-edit" data-ref="ptext" spellcheck="false" rows="8" ' +
       'aria-label="Notice text the router reads" maxlength="' + MAX_LIVE_CHARS + '">' +
       // The leading newline is deliberate: an HTML parser drops the first
@@ -1276,7 +1328,11 @@ window.MDTLive = (function () {
   function stageRouter(scn) {
     var r = scn.router_output;
     var nr = r.needs_review ? "<span class='badge review'>needs review</span>" : "<span class='badge clear'>no review</span>";
-    return '<div class="card"><p class="section-label">Stage 2 \u00b7 Router output (Layer 1)</p>' +
+    return '<div class="card">' +
+      stageHead(2, "What kind of notice is it?",
+        "The classifier reads the words and decides the type, the venue and the date it bites \u2014 "
+        + "and reports how sure it is, with the evidence it used.",
+        "Router output \u00b7 Layer 1") +
       '<div class="kv">' +
       kv("notice type", r.notice_type) + kv("source", r.source) + kv("venue", r.affected_exchange) +
       kv("asset class", r.affected_asset_class) + kv("effective date", r.effective_date) + kv("urgency", r.urgency) +
@@ -1315,7 +1371,11 @@ window.MDTLive = (function () {
       liveNote(scn);
   }
   function stageImpact(scn) {
-    return '<div class="card"><p class="section-label">Stage 3 \u00b7 Impact (Layer 2)</p>' +
+    return '<div class="card">' +
+      stageHead(3, "What does it touch?",
+        "A feed is never just a feed. This traces every dataset, system and trading desk "
+        + "downstream of it \u2014 the reason one notice can matter far more than it looks.",
+        "Impact \u00b7 Layer 2") +
       '<div class="pipe-impact"><div class="pipe-graph" data-ref="pgraph"></div>' +
       '<div class="pipe-side" data-ref="pside">' + impactSide(scn) + "</div></div></div>";
   }
@@ -1335,7 +1395,12 @@ window.MDTLive = (function () {
       kv("router conf.", Number(t.audit.router_confidence).toFixed(2)) +
       kv("graph conf.", Number(t.audit.graph_match_confidence).toFixed(2)) +
       kv("review", String(t.audit.review_required)) + "</div></div>";
-    return '<div class="card"><p class="section-label">Stage 4 \u00b7 Decision &amp; ticket (Layer 3)</p>' +
+    return '<div class="card">' +
+      stageHead(4, "Who needs to act, and by when?",
+        "A ticket with an owner, a priority and a due date \u2014 plus the rule that sends it to "
+        + "a human whenever the match is weak. Clearing something that mattered is the "
+        + "expensive mistake, so the tie goes to escalation.",
+        "Decision \u0026 ticket \u00b7 Layer 3") +
       '<div class="g-panel"><div class="badges">' + review + "<span class='badge prio-" + r.priority + "'>" + r.priority + " priority</span>" + conf + "</div>" +
       '<div class="action">' + esc(r.recommended_action) + "</div></div>" + ticket +
       liveNote(scn) +

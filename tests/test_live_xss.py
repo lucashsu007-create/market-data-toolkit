@@ -110,10 +110,15 @@ def test_no_inline_event_handler_survives(payload, renderer, rendered):
 @pytest.mark.parametrize("renderer", RENDERED)
 def test_no_unescaped_angle_bracket_from_the_input(payload, renderer, rendered):
     """The strong form: strip the markup the renderer is entitled to emit, and
-    nothing bracket-shaped may remain."""
+    nothing bracket-shaped may remain.
+
+    The allowlist is deliberately narrow, so introducing a tag fails here until
+    someone adds it — which is the point. Widen it only for a tag a renderer is
+    genuinely meant to emit, never to make a failure go away.
+    """
     html = rendered[payload["name"]][renderer]
     stripped = re.sub(
-        r"</?(?:div|span|p|pre|b|h5|mark|textarea|button|em|code|a|small"
+        r"</?(?:div|span|p|pre|b|h3|h5|mark|textarea|button|em|code|a|small"
         r"|details|summary)\b[^>]*>",
         "", html,
     )
