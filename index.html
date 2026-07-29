@@ -37,7 +37,6 @@
 .mdig-nav button:hover { border-color: #3d434f; background: #1b2130; }
 .mdig-nav button.active { background: var(--blue); border-color: var(--blue); color: #fff; }
 .mdig-nav button:disabled { opacity: .45; cursor: default; }
-.mdig-nav button .soon { font-size: 9.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin-left: 5px; }
 
 /* ---- view container ---- */
 .mdig-view { flex: 1 1 auto; min-height: 0; }
@@ -1005,8 +1004,9 @@ window.MDTLive = (function () {
 })();
 /* @mdt-live-end */
 
-/* Cluster shell: loads embedded site data, routes between views, renders Overview,
-   Pipeline (the 4-stage walkthrough), the Graph tab (mounts MDIGGraph), and stubs. */
+/* Cluster shell: loads the embedded site data and routes between the five views
+   — Overview, Pipeline (the editable 4-stage walkthrough), Control Plane, Graph
+   (mounts MDIGGraph) and Notes. */
 (function () {
   var dataEl = document.getElementById("site-data");
   var DATA = JSON.parse(dataEl.textContent);
@@ -1040,9 +1040,8 @@ window.MDTLive = (function () {
   var nav = document.getElementById("mdig-nav");
   TABS.forEach(function (t) {
     var b = document.createElement("button");
-    b.innerHTML = t.label + (t.soon ? "<span class='soon'>soon</span>" : "");
+    b.textContent = t.label;
     b.setAttribute("data-tab", t.id);
-    if (t.soon) b.disabled = false; // navigable but shows a stub
     b.addEventListener("click", function () { go(t.id); });
     nav.appendChild(b);
   });
