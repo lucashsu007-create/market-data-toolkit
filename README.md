@@ -97,6 +97,21 @@ python -m venv .venv && .venv/bin/pip install -e ".[dev]"
 .venv/bin/pytest --cov=mdt
 ```
 
+The demo's Pipeline tab lets you edit the notice text and reclassifies it in the browser, which
+means `index.html` carries a JavaScript port of Layers 1–3. A port is a second implementation, so
+`tests/test_js_parity.py` extracts the shipped block, runs it under Node, and diffs it against the
+Python original over all 26 corpus notices plus ~20 adversarial inputs (Unicode word boundaries and
+digits, scoring ties, the confidence cap). Rules are exported from the Python tables rather than
+retyped — `rules_export.to_js_pattern` rewrites `\b` and `\d` into their Unicode-correct JS
+equivalents and **refuses** anything else, so an unreviewed construct fails the build instead of
+silently classifying differently in the browser.
+
+Node is only needed for that suite. Without it those tests skip; set `MDT_REQUIRE_NODE=1` (as CI
+does) to turn a missing Node into a failure, since a parity suite that skips itself looks
+identical to one that passes. Live classification of edited text is rendered explicitly **ungraded**
+— there is no label for text you just typed, and the accuracy figures on the site are the frozen
+corpus's, not that text's.
+
 ```python
 from mdt import load_estate, resolve_impact, run_audit
 

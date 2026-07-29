@@ -32,6 +32,12 @@ from mdt.evaluate import evaluate  # noqa: E402
 from mdt.impact import resolve_impact  # noqa: E402
 from mdt.loader import load_estate  # noqa: E402
 from mdt.router import route  # noqa: E402
+from mdt.rules_export import (  # noqa: E402
+    ACTIONS,
+    ASSET_CLASS,
+    ASSET_CLASS_DEFAULT,
+    export_rules,
+)
 
 ESTATE_REFERENCE_DATE = date(2025, 10, 20)
 
@@ -45,16 +51,17 @@ SCENARIO_IDS = [
     "nasdaq-utp2026-17",
 ]
 
-_ASSET_CLASS = {"cme": "futures", "nasdaq": "equities"}
 
-_ACTIONS = {
-    "feed_change": "Plan and verify migration/connectivity work with every impacted owner before the effective date.",
-    "format_change": "Confirm parsers and downstream schemas handle the new format; schedule testing before the effective date.",
-    "operational": "Note the operational change; verify schedules and capacity assumptions where relevant.",
-    "regulatory": "Track the regulatory item; no immediate system change.",
-    "reference_data": "Apply reference-data updates on the effective date.",
-    "admin_other": "No action: administrative item.",
-}
+def _asset_class(venue: str | None) -> str:
+    """Asset class for the venue **the router called**, not the corpus record's.
+
+    Display-only (evaluate.py does not read it), and it belongs to the router's
+    answer: printing `equities` next to a venue the router failed to identify
+    would be quietly sourcing the field from the answer key. On the rows where
+    the router misses the venue this now reads `mixed`, which is the honest
+    consequence of that miss.
+    """
+    return ASSET_CLASS.get(venue, ASSET_CLASS_DEFAULT)
 
 
 def _slug(reason: str) -> str:
@@ -72,10 +79,16 @@ def _governance(estate, feed_ids):
     return sorted(contracts), sorted(entitlements)
 
 
-def _pipeline(estate, notice):
-    """Run the real pipeline on one notice; return routed, ticket, impact rollup."""
-    routed = route(notice.text, published=notice.published)
-    ticket = decide(estate, routed, notice.text)
+def _pipeline_text(estate, text, published):
+    """Run the real pipeline over arbitrary text; return routed, ticket, rollup.
+
+    Split out from `_pipeline` because the demo's stage 1 is editable: the
+    JavaScript port has to reproduce exactly this sequence over text nobody has
+    a label for, and a function taking `(text, published)` is the shape that
+    port mirrors. Everything downstream of `route()` is unchanged.
+    """
+    routed = route(text, published=published)
+    ticket = decide(estate, routed, text)
 
     feeds, datasets, systems, desks, owners = set(routed.feeds), set(), set(), set(), set()
     for fid in routed.feeds:
@@ -111,6 +124,11 @@ def _pipeline(estate, notice):
     return routed, ticket, rollup
 
 
+def _pipeline(estate, notice):
+    """The pipeline over a corpus notice — `notice.text` is all the router sees."""
+    return _pipeline_text(estate, notice.text, notice.published)
+
+
 def build() -> dict:
     estate = load_estate()
     notices = load_notices()
@@ -127,7 +145,7 @@ def build() -> dict:
             "label": notice.title if len(notice.title) <= 60 else notice.title[:57] + "…",
             "notice_type": routed.notice_type,
             "venue": (routed.venue or "?").upper(),
-            "asset_class": _ASSET_CLASS.get(notice.venue, "mixed"),
+            "asset_class": _asset_class(routed.venue),
             "effective_date": routed.effective,
             "published": notice.published,
             "urgency": ticket.priority,
@@ -193,6 +211,13 @@ def build() -> dict:
                 "id": nid,
                 "label": notice.title if len(notice.title) <= 44 else notice.title[:41] + "…",
                 "notice_type": routed.notice_type,
+                # What `route()` was actually handed, and what the editable
+                # stage 1 is seeded with. Deliberately not `raw_text`: that
+                # wraps the notice in a source header for display, and seeding
+                # from it would make the live classifier disagree with the
+                # shipped result on first paint.
+                "router_input": notice.text,
+                "published": notice.published,
                 "raw_text": (
                     f"Source: {notice.venue.upper()} {notice.notice_no} · published {notice.published}\n"
                     f"{notice.source_url}\n\n{notice.title}\n\n{notice.summary}\n\n"
@@ -203,7 +228,7 @@ def build() -> dict:
                     "notice_type": routed.notice_type,
                     "source": (routed.venue or "unknown").upper(),
                     "affected_exchange": (routed.venue or "unknown").upper(),
-                    "affected_asset_class": _ASSET_CLASS.get(notice.venue, "mixed"),
+                    "affected_asset_class": _asset_class(routed.venue),
                     "effective_date": routed.effective,
                     "urgency": ticket.priority,
                     "summary": notice.title,
@@ -216,7 +241,7 @@ def build() -> dict:
                     "review_required": ticket.review_required,
                     "priority": ticket.priority,
                     "risks": [{"flag": _slug(r), "detail": r} for r in ticket.reasons],
-                    "recommended_action": _ACTIONS[routed.notice_type],
+                    "recommended_action": ACTIONS[routed.notice_type],
                 },
                 "ticket": {
                     "id": nid,
@@ -224,7 +249,7 @@ def build() -> dict:
                     "priority": ticket.priority,
                     "assignees": ticket.owners,
                     "due_date": routed.effective,
-                    "recommended_action": _ACTIONS[routed.notice_type],
+                    "recommended_action": ACTIONS[routed.notice_type],
                     "audit": {
                         "router_confidence": routed.confidence,
                         "graph_match_confidence": rollup["graph_match_confidence"],
@@ -274,6 +299,12 @@ def build() -> dict:
             "nodes": json.loads((ROOT / "data" / "estate.json").read_text())["nodes"],
             "links": json.loads((ROOT / "data" / "estate.json").read_text())["links"],
         },
+        # The rule tables, translated for JavaScript, so the Pipeline tab can
+        # classify text typed into the page. They ride in this block rather than
+        # one of their own: `main()` rewrites exactly one <script>, and the CI
+        # drift check watches this file, so the rules get the same guard the
+        # rest of the payload already has.
+        "rules": export_rules(),
         "scenarios": scenarios,
         "queue": queue,
         "audit": audit,

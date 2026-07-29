@@ -76,7 +76,29 @@ _FEED_RULES: tuple[tuple[str, str | None], ...] = (
     (r"\bnfn\b|\bfund network\b|\bnfnds\b", None),
 )
 
-_ISO_DATE = re.compile(r"\b(20\d{2}-\d{2}-\d{2})\b")
+# Groupless on purpose: `findall` returns whole matches, and every scored rule
+# in this module is read the same way. A capturing group anywhere in here
+# silently switches findall to group tuples.
+_ISO_DATE = re.compile(r"\b20\d{2}-\d{2}-\d{2}\b")
+
+
+def rules_snapshot() -> dict:
+    """The rule tables, flattened for a port that has to reproduce them exactly.
+
+    Pairs rather than objects throughout: declaration order is load-bearing.
+    Evidence is reported in the order rules are declared, and the venue contest
+    is won by the first table entry on a tie — a JSON object promises neither.
+    """
+    return {
+        "venue": [[venue, list(markers)] for venue, markers in _VENUE_RULES.items()],
+        "type": [
+            [label, [[pat, weight] for pat, weight in pats]]
+            for label, pats in _TYPE_RULES.items()
+        ],
+        "feed": [[pat, feed_id] for pat, feed_id in _FEED_RULES],
+        "iso_date": _ISO_DATE.pattern,
+        "notice_types": list(NOTICE_TYPES),
+    }
 
 
 @dataclass

@@ -1,0 +1,110 @@
+[
+  {
+    "name": "empty",
+    "why": "No text at all. The textarea starts non-empty but can be cleared, and every layer has to survive it rather than throw into a blank tab.",
+    "text": ""
+  },
+  {
+    "name": "whitespace-only",
+    "why": "Distinct from empty: `low` is truthy, so any code that tested the string for truthiness instead of for matches would diverge here.",
+    "text": "   \n\t    "
+  },
+  {
+    "name": "no-rule-matches",
+    "why": "The admin_other fallback. Pins type_scores == [] and margin 0.0 — a port that emitted a one-entry scoreboard would imply a contest that never happened.",
+    "text": "zzz qqq wibble"
+  },
+  {
+    "name": "exact-two-way-type-tie",
+    "why": "feed_change and format_change both score 3. Pins the alphabetical tie-break: sorted by (-score, label), so feed_change wins on the label, not on declaration order.",
+    "text": "retire format"
+  },
+  {
+    "name": "venue-tie-nasdaq-cme",
+    "why": "One marker each. Python's max() over an insertion-ordered dict keeps the first maximum, so nasdaq wins. A JS reduce using >= would silently pick cme.",
+    "text": "nasdaq cme"
+  },
+  {
+    "name": "overlapping-format-rules",
+    "why": "Both \\bmessages?\\b and \\bmessage codes?\\b match the same span and both score. Rules are not mutually exclusive and the total is 4, not 2.",
+    "text": "message codes"
+  },
+  {
+    "name": "count-based-weighting",
+    "why": "Weight is multiplied by the number of matches, not by whether the rule fired. Three holidays score 12, not 4.",
+    "text": "holiday holiday holiday"
+  },
+  {
+    "name": "known-feed-and-unknown-product",
+    "why": "The confidence cap is an `elif`: with a resolved feed present the 0.45 ceiling must NOT apply even though an unknown product also matched. unknown_target stays false for the same reason.",
+    "text": "totalview and nfn"
+  },
+  {
+    "name": "multiple-iso-dates-one-is-published",
+    "why": "The publish date is skipped and the next ISO date wins. Also pins that the date scan runs on the original text, not the lowercased copy.",
+    "text": "Notice dated 2026-01-15. Changes take effect 2026-02-20 for all subscribers.",
+    "published": "2026-01-15"
+  },
+  {
+    "name": "iso-date-scanned-on-original-text",
+    "why": "The date rule runs on the ORIGINAL text, not the lowercased copy, and here that is observable: İ lowercases to i + U+0307, a combining mark that is not a word character, so the lowercased form grows a word boundary the original does not have and would match the date. Correct answer: no effective date.",
+    "text": "İ2026-01-01 is not a date we should find"
+  },
+  {
+    "name": "impossible-date",
+    "why": "2099-13-45 is not a date, but the rule is a shape match with no calendar validation. Both sides must be equally wrong.",
+    "text": "effective 2099-13-45"
+  },
+  {
+    "name": "unicode-word-boundary",
+    "why": "CONFIRMED DIVERGENCE. Python's \\b is Unicode-aware, so \\bsec\\b does not match inside 日本sec. A raw JS \\b would match and score this regulatory.",
+    "text": "日本sec"
+  },
+  {
+    "name": "unicode-digit",
+    "why": "CONFIRMED DIVERGENCE. Python's \\d matches Arabic-Indic digits, so \\btag \\d+ fires. A raw JS \\d is [0-9] and would miss it.",
+    "text": "tag ٥"
+  },
+  {
+    "name": "unicode-digit-inside-iso-date",
+    "why": "The date rule is \\d-based too: 2026-٠1-01 is a match on both sides once \\d is translated to \\p{Nd}.",
+    "text": "effective 2026-٠1-01"
+  },
+  {
+    "name": "underscore-is-a-word-character",
+    "why": "\\bretire must not match in _retire. Pins the `_` inside the translated character class — dropping it would make this score feed_change.",
+    "text": "_retire and re_tire"
+  },
+  {
+    "name": "turkish-dotted-capital",
+    "why": "İ lowercases to two codepoints. Both engines must agree, since every type rule is matched against the lowercased copy.",
+    "text": "NASDAQ İSTANBUL will retire a feed"
+  },
+  {
+    "name": "wide-blast-radius",
+    "why": "Three feeds resolve at once, tripping the blast-radius bump and the imperative bump together. Exercises decide()'s reason list in order.",
+    "text": "TotalView, MDP and UTP subscribers must migrate before 2026-05-01."
+  },
+  {
+    "name": "markup-in-the-notice",
+    "why": "The textarea accepts anything an interviewer pastes. Angle brackets and quotes must be inert data to the classifier, not a special case.",
+    "text": "<script>alert(1)</script> NASDAQ will retire TotalView \"soon\" & <b>migrate</b>"
+  },
+  {
+    "name": "impact-target-dataset",
+    "why": "resolve_impact on a non-feed node: the origin must NOT be folded into `feeds`, which only happens when the origin is itself a feed.",
+    "text": "futures quotes dataset",
+    "impact_target": "futures_quotes"
+  },
+  {
+    "name": "impact-target-missing",
+    "why": "An id the catalog does not contain resolves to unknown_target rather than an error — that outcome is first-class, not a failure.",
+    "text": "something we do not model",
+    "impact_target": "no_such_node_id"
+  },
+  {
+    "name": "calendar-outranks-everything",
+    "why": "A holiday closure of a critical feed stays low: the calendar guard skips all three priority bumps, including the imperative one that 'must' would otherwise fire.",
+    "text": "US Market Holiday: markets will be closed 2026-12-25. TotalView subscribers must note the schedule."
+  }
+]

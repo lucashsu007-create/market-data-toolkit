@@ -35,7 +35,36 @@ _IMPERATIVE = re.compile(
     re.IGNORECASE,
 )
 
+# Calendar notices (holidays, market closures) are routine regardless of which
+# feed they mention.
+_CALENDAR = re.compile(
+    r"\bholiday\b|\bmarkets? (?:will be )?closed\b",
+    re.IGNORECASE,
+)
+
 CONFIDENCE_FLOOR = 0.5
+
+#: Sits above the blast radius of any single feed in this estate (max 10), so
+#: only multi-feed notices trip it: it flags genuine breadth instead of
+#: re-flagging every CME notice.
+BLAST_THRESHOLD = 12
+
+
+def rules_snapshot() -> dict:
+    """The decision layer's tunables, for the in-browser port to compile.
+
+    Emitted as pairs rather than objects: the JS side must not be free to
+    reorder anything, and a snapshot is cheaper to keep honest than a second
+    hand-typed copy of these constants living in index.html.
+    """
+    return {
+        "base": [[notice_type, priority] for notice_type, priority in _BASE.items()],
+        "priorities": list(PRIORITIES),
+        "imperative": _IMPERATIVE.pattern,
+        "calendar": _CALENDAR.pattern,
+        "confidence_floor": CONFIDENCE_FLOOR,
+        "blast_threshold": BLAST_THRESHOLD,
+    }
 
 
 def _bump(priority: str, steps: int = 1) -> str:
@@ -85,10 +114,9 @@ def decide(estate: Estate, routed: RouterResult, text: str) -> Ticket:
         if node is not None and node.criticality == "high":
             critical_feed = True
 
-    # Calendar notices (holidays, market closures) are routine regardless of
-    # which feed they mention — a closure of a critical feed is still just a
-    # closure. Dev-set evidence: every holiday notice is labelled low.
-    calendar = bool(re.search(r"\bholiday\b|\bmarkets? (?:will be )?closed\b", text, re.IGNORECASE))
+    # A closure of a critical feed is still just a closure. Dev-set evidence:
+    # every holiday notice is labelled low.
+    calendar = bool(_CALENDAR.search(text))
 
     if not calendar:
         if _IMPERATIVE.search(text):
@@ -97,10 +125,7 @@ def decide(estate: Estate, routed: RouterResult, text: str) -> Ticket:
         if critical_feed and routed.notice_type in ("feed_change", "format_change", "operational"):
             priority = _bump(priority)
             reasons.append("touches a criticality-high feed")
-        # Threshold sits above the blast radius of any single feed in this
-        # estate (max 10): only multi-feed notices trip it, so it flags genuine
-        # breadth instead of re-flagging every CME notice.
-        if blast >= 12:
+        if blast >= BLAST_THRESHOLD:
             priority = _bump(priority)
             reasons.append(f"wide blast radius ({blast} nodes)")
 
