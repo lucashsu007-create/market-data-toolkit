@@ -77,21 +77,28 @@ html, body { margin: 0; }
 .btn.primary:hover { background: #1e54e6; }
 
 /* ---- overview ---- */
-.ov-grid { display: grid; gap: 14px; height: 100%; grid-template-rows: auto auto 1fr; min-height: 0; overflow-y: auto; }
-.ov-hero h2 { margin: 2px 0 6px; font-size: 22px; color: #f0f3fa; }
-.ov-hero p { margin: 0; color: #aab0bb; font-size: 14px; max-width: 760px; }
-.ov-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
-.ov-stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
-.ov-stat b { display: block; font-size: 22px; font-family: var(--mono); color: #f0f3fa; }
-.ov-stat span { font-size: 12px; color: var(--muted); }
+/* `grid-template-rows: auto auto 1fr` handed the layer row every leftover
+   pixel, and `.metric { margin-top: auto }` then pinned its chip to the bottom
+   of a stretched card — roughly 250px of void inside each one. Rows size to
+   content now and the grid packs to the top; the container still scrolls when
+   the content genuinely exceeds the viewport. */
+.ov-grid { display: grid; gap: 18px; height: 100%; align-content: start; min-height: 0; overflow-y: auto; }
+/* The break balances the headline into two even lines on a wide screen and
+   orphans one on a phone, where the text wraps on its own anyway. */
+@media (max-width: 620px) { .wide-br { display: none; } }
+.ov-hero h2 { margin: 2px 0 10px; font-size: clamp(21px, 2.6vw, 31px); line-height: 1.18; letter-spacing: -.022em; color: #f5f7fb; font-weight: 600; }
+.ov-hero p { margin: 0; color: #a9b0be; font-size: 14.5px; line-height: 1.6; max-width: 68ch; }
+.ov-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.ov-stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 13px 15px; }
+.ov-stat b { display: block; font-size: 25px; font-family: var(--mono); color: #f0f3fa; letter-spacing: -.02em; }
+.ov-stat span { display: block; margin-top: 3px; font-size: 12px; line-height: 1.35; color: var(--muted); }
 .ov-stat.good b { color: #4cd2c4; }
-.layers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-.layer { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; }
-.layer .lnum { font-family: var(--mono); font-size: 12px; color: var(--muted); }
-.layer h3 { margin: 4px 0 2px; font-size: 15px; color: #f0f3fa; }
-.layer .q { color: var(--muted); font-size: 12.5px; font-style: italic; margin-bottom: 8px; }
-.layer p { margin: 0 0 10px; font-size: 12.5px; color: #aab0bb; }
-.layer .metric { margin-top: auto; font-size: 12px; font-family: var(--mono); color: #4cd2c4; background: rgba(38,166,154,.1); border: 1px solid rgba(38,166,154,.25); border-radius: 7px; padding: 6px 8px; }
+.layers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; align-items: start; }
+.layer { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; }
+.layer .lnum { font-family: var(--mono); font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.layer h3 { margin: 7px 0 7px; font-size: 16.5px; line-height: 1.25; letter-spacing: -.012em; color: #f5f7fb; font-weight: 600; }
+.layer p { margin: 0 0 12px; font-size: 13px; line-height: 1.55; color: #a9b0be; }
+.layer .metric { margin-top: auto; font-size: 12px; font-family: var(--mono); color: #4cd2c4; background: rgba(38,166,154,.1); border: 1px solid rgba(38,166,154,.25); border-radius: 7px; padding: 7px 9px; }
 .layer.l2 { border-color: rgba(41,98,255,.4); }
 .ov-cta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 
@@ -321,7 +328,10 @@ html, body { margin: 0; }
   <div class="mdig-head">
     <div>
       <h1>Market-data operations toolkit</h1>
-      <p>A role-inspired demo: classify a vendor / exchange notice, map everything it affects inside the firm, and route it for review &mdash; three layers, one workflow.</p>
+      <!-- Deliberately short. Each tab now opens with its own plain-language
+           statement, and a second paragraph of explanation here sat directly
+           above them as a weaker, competing intro. -->
+      <p>Real exchange notices, a modelled estate, and a pipeline that scores itself.</p>
     </div>
     <div class="mdig-byline">by <strong>Lucas Hsu</strong></div>
   </div>
@@ -1101,16 +1111,29 @@ window.MDTLive = (function () {
     var m = DATA.evaluation.metrics;
     viewEl.innerHTML =
       '<div class="ov-grid">' +
-      '<div class="ov-hero"><h2>Market-data operations, end to end</h2>' +
-      "<p>A vendor or exchange notice is classified, mapped to everything it touches through a dependency graph, and turned into a routed, reviewable action \u2014 then the pipeline scores its own output on a frozen held-out split. The 26 notices are real (Nasdaq, CME); the estate they land on is synthetic.</p></div>" +
+      // Lead with the problem in plain words. "Market-data operations, end to
+      // end" named a category rather than saying what the thing is for, and the
+      // paragraph under it opened on "frozen held-out split" \u2014 jargon in the
+      // first breath, to a reader who may have arrived straight from a CV.
+      '<div class="ov-hero"><h2>Every exchange notice asks the same question: <br class=\"wide-br\">does this break anything?</h2>' +
+      "<p>Venues and vendors send these constantly. Most are noise, but a few will quietly break a feed a trading desk depends on, " +
+      "and missing one costs far more than reading it. This reads each notice, traces what it touches, and decides who needs to act " +
+      "\u2014 then scores itself on notices it was never tuned against.</p></div>" +
       '<div class="ov-stats">' +
-      stat(DATA.catalog.nodes.length, "graph nodes") + stat(DATA.catalog.links.length, "dependencies") +
-      stat(q.length, "notices") + stat(rev, "need review") + stat(q.length - rev, "auto-cleared") +
-      stat(m.false_clears, "false clears (all 26)", m.false_clears === 0) + "</div>" +
+      // Labels say what the number means to a reader rather than what it is
+      // called internally. The miss stays on the front page.
+      stat(q.length, "real notices classified") +
+      stat(DATA.catalog.nodes.length, "assets modelled") +
+      stat(rev, "escalated to a person") +
+      stat(q.length - rev, "cleared automatically") +
+      stat(Math.round(DATA.evaluation.held_out.metrics.type_accuracy * 100) + "%", "type accuracy, held out", true) +
+      stat(m.false_clears, m.false_clears === 1 ? "cleared in error \u2014 the costly kind" : "cleared in error") + "</div>" +
       '<div class="layers">' +
-      layer("Layer 1", "Notification Router", "What is this notice?", "Ingests real vendor / exchange notices and classifies them into structured events \u2014 type, venue, effective date \u2014 with evidence-backed confidence.", "held-out type accuracy = " + Math.round(DATA.evaluation.held_out.metrics.type_accuracy * 100) + "%") +
-      layer("Layer 2", "Impact Graph", "What does it affect?", "Maps each notice onto an internal dependency graph and computes the full downstream impact: datasets, systems, desks, owners, contracts, entitlements.", "held-out feed recall = " + Math.round(DATA.evaluation.held_out.metrics.feed_recall * 100) + "%", "l2") +
-      layer("Layer 3", "Ops Control Plane", "What do we do next?", "Turns impact into operations: a review queue, owner routing, the governance audit, and honest quality metrics \u2014 including the failures.", "held-out false clears = " + DATA.evaluation.held_out.metrics.false_clears) +
+      // Question as the title, machinery as the eyebrow \u2014 the same order the
+      // Pipeline tab now uses, so the two tabs read as one product.
+      layer("Layer 1 \u00b7 Notification Router", "What is this notice?", "Reads real vendor and exchange notices and turns them into structured events \u2014 type, venue, the date it takes effect \u2014 recording the words it keyed on, so a wrong answer can be traced to the rule that caused it.", "held-out type accuracy = " + Math.round(DATA.evaluation.held_out.metrics.type_accuracy * 100) + "%") +
+      layer("Layer 2 \u00b7 Impact Graph", "What does it affect?", "A feed is never just a feed. This walks the dependency graph to every dataset, system, desk, owner, contract and entitlement downstream of it.", "held-out feed recall = " + Math.round(DATA.evaluation.held_out.metrics.feed_recall * 100) + "%", "l2") +
+      layer("Layer 3 \u00b7 Ops Control Plane", "What do we do next?", "Turns impact into work: a review queue, an owner, a priority, the governance audit \u2014 and the quality metrics, including the ones that did not come out well.", "held-out false clears = " + DATA.evaluation.held_out.metrics.false_clears) +
       "</div>" +
       '<div class="ov-cta"><button class="btn primary" data-go="pipeline">Start the walkthrough \u2192</button>' +
       '<button class="btn" data-go="graph">Explore the graph</button>' +
@@ -1119,8 +1142,8 @@ window.MDTLive = (function () {
     viewEl.querySelectorAll("[data-go]").forEach(function (b) { b.addEventListener("click", function () { go(b.getAttribute("data-go")); }); });
   }
   function stat(v, label, good) { return '<div class="ov-stat' + (good ? " good" : "") + '"><b>' + v + "</b><span>" + label + "</span></div>"; }
-  function layer(n, title, q, body, metric, cls) {
-    return '<div class="layer ' + (cls || "") + '"><span class="lnum">' + n + '</span><h3>' + title + '</h3><div class="q">' + q + "</div><p>" + body + '</p><div class="metric">' + metric + "</div></div>";
+  function layer(eyebrow, question, body, metric, cls) {
+    return '<div class="layer ' + (cls || "") + '"><span class="lnum">' + eyebrow + '</span><h3>' + question + "</h3><p>" + body + '</p><div class="metric">' + metric + "</div></div>";
   }
 
   // ---- pipeline ----
