@@ -83,10 +83,6 @@
 .layer.l2 { border-color: rgba(41,98,255,.4); }
 .ov-cta { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 
-/* ---- placeholder (stub views) ---- */
-.stub { height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; text-align: center; color: var(--muted); }
-.stub h2 { color: var(--ink); margin: 0 0 6px; }
-.stub p { max-width: 420px; }
 
 
 /* ---- control plane ---- */
@@ -1061,12 +1057,15 @@ window.MDTLive = (function () {
   function render() {
     destroyGraphs();
     viewEl.innerHTML = "";
-    if (current === "overview") renderOverview();
-    else if (current === "pipeline") renderPipeline();
+    // Exhaustive over TABS. `fromHash` already clamps anything unrecognised to
+    // "overview", so the final branch is the overview rather than a fallback —
+    // it used to render a stub announcing Control Plane and Notes as unbuilt,
+    // which stopped being true and could only ever have misinformed a visitor.
+    if (current === "pipeline") renderPipeline();
     else if (current === "graph") renderGraphTab();
     else if (current === "control") renderControl();
     else if (current === "notes") renderNotes();
-    else renderStub(current);
+    else renderOverview();
   }
 
   // ---- overview ----
@@ -1601,15 +1600,6 @@ window.MDTLive = (function () {
       + '<h2>Limitations</h2><p>n=7 held-out is a smoke signal, not a benchmark. Labels and paraphrases share an author with the rules — the frozen split mitigates tuning leakage but not labelling bias. CME records are thinner than Nasdaq ones. Euronext was planned; its notices sit behind a login portal.</p>'
       + '<p><a href="https://github.com/lucashsu007-create/market-data-toolkit" target="_blank" rel="noopener">Code, corpus, tests and this page’s build script →</a></p>'
       + '</div>';
-  }
-
-  // ---- stubs ----
-  function renderStub(tab) {
-    var t = TABS.filter(function (x) { return x.id === tab; })[0] || { label: tab };
-    var next = tab === "control"
-      ? "The operator dashboard \u2014 review queue, risk overview, the catalog audit, and the evaluation metrics \u2014 is the next build (Phase D)."
-      : "The ecosystem write-up and condensed architecture notes are coming (Phase E).";
-    viewEl.innerHTML = '<div class="stub"><h2>' + t.label + "</h2><p>" + next + " For now, explore the Pipeline and the Graph.</p></div>";
   }
 
   /* Test seam. The stage renderers build HTML by concatenation and now receive
