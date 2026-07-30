@@ -323,6 +323,9 @@ html, body { margin: 0; }
 .stage-q { margin: 0; font-size: clamp(19px, 2.1vw, 27px); line-height: 1.18; letter-spacing: -.02em; color: #f5f7fb; font-weight: 600; }
 .stage-a { margin: 9px 0 0; max-width: 62ch; font-size: 14.5px; line-height: 1.6; color: #a9b0be; }
 .stage-a b { color: var(--ink); font-weight: 600; }
+/* Graph tab variant: the plot needs the room, so the opener stays tight. */
+.stage-head.compact { margin: 0 0 12px; }
+.stage-head.compact .stage-q { font-size: clamp(17px, 1.7vw, 22px); }
 .pipe-raw { background: #0e1118; border: 1px solid var(--line); border-radius: 8px; padding: 12px; font-family: var(--mono); font-size: 12px; color: #aab0bb; white-space: pre-wrap; margin: 0; }
 .pipe-hint { color: var(--muted); font-size: 12px; margin: 12px 0 0; }
 .pipe-edit { display: block; width: 100%; box-sizing: border-box; resize: vertical; min-height: 150px; color: #d5dae3; line-height: 1.55; }
@@ -1478,8 +1481,20 @@ window.MDTLive = (function () {
 
   // ---- graph tab ----
   function renderGraphTab() {
-    var c = document.createElement("div"); c.style.height = "100%";
-    viewEl.appendChild(c);
+    // The one tab that still opened with no framing at all — the graph mounted
+    // bare and the only words were the side panel's internal vocabulary. Same
+    // question-first opening as the other tabs, kept compact so the graph
+    // keeps its vertical space.
+    var wrap = document.createElement("div");
+    wrap.style.cssText = "height:100%;display:flex;flex-direction:column;min-height:0";
+    wrap.innerHTML = '<div class="stage-head compact">'
+      + '<p class="stage-eyebrow">Estate graph · ' + DATA.catalog.nodes.length + ' assets · ' + DATA.catalog.links.length + ' dependencies</p>'
+      + '<h3 class="stage-q">How does one notice reach a trading desk?</h3>'
+      + '<p class="stage-a">Pick a scenario to light the path a real notice took — feed to datasets to systems to desks — or drag the nodes and switch layouts.</p></div>';
+    var c = document.createElement("div");
+    c.style.cssText = "flex:1 1 auto;min-height:0";
+    wrap.appendChild(c);
+    viewEl.appendChild(wrap);
     graphApi = MDIGGraph(c, DATA, { controls: true });
   }
 
